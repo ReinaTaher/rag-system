@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Container, Paper } from '@mantine/core'
 import Header from './components/Header'
 import ChatWindow from './components/ChatWindow'
 import ChatInput from './components/ChatInput'
@@ -8,8 +7,8 @@ export default function App() {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hi! Ask me anything about CIS Security Controls.' }
   ])
-  const [loading, setLoading] = useState(false)   // true = waiting for first token
-  const [streaming, setStreaming] = useState(false) // true = tokens arriving
+  const [loading, setLoading] = useState(false)
+  const [streaming, setStreaming] = useState(false)
 
   async function sendMessage(text) {
     const history = messages.slice(1).slice(-6)
@@ -43,10 +42,8 @@ export default function App() {
               firstToken = false
               setLoading(false)
               setStreaming(true)
-              // Add the assistant message with the first token
               setMessages(prev => [...prev, { role: 'assistant', content: token }])
             } else {
-              // Append each subsequent token to the last message
               setMessages(prev => {
                 const updated = [...prev]
                 const last = updated[updated.length - 1]
@@ -67,29 +64,31 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen w-screen bg-gray-100 flex justify-center items-center">
-      <Container size="md" className="h-full w-full flex justify-center">
-        <Paper
-          withBorder
-          shadow="md"
-          radius="md"
-          style={{
-            width: '100%',
-            maxWidth: '900px',
-            height: '95vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            backgroundColor: '#f3f4f6',
-          }}
-        >
-          <Header />
-          <div style={{ flex: 1, minHeight: 0 }}>
-            <ChatWindow messages={messages} loading={loading} streaming={streaming} />
-          </div>
-          <ChatInput onSend={sendMessage} disabled={loading || streaming} />
-        </Paper>
-      </Container>
+    <div style={{
+      height: '100vh',
+      width: '100vw',
+      backgroundColor: '#0a0a0a',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '860px',
+        height: '95vh',
+        backgroundColor: '#111111',
+        borderRadius: '16px',
+        border: '1px solid #222222',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        <Header />
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <ChatWindow messages={messages} loading={loading} streaming={streaming} />
+        </div>
+        <ChatInput onSend={sendMessage} disabled={loading || streaming} />
+      </div>
     </div>
   )
 }

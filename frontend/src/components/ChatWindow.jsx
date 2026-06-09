@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { ScrollArea, Text } from '@mantine/core'
 import ReactMarkdown from 'react-markdown'
 
 export default function ChatWindow({ messages, loading, streaming }) {
@@ -12,36 +11,37 @@ export default function ChatWindow({ messages, loading, streaming }) {
   const lastIsAssistant = messages[messages.length - 1]?.role === 'assistant'
 
   return (
-    <ScrollArea
-      className="h-full p-4"
-      style={{ backgroundColor: 'transparent' }}
+    <div
+      className="dark-scrollbar"
+      style={{ height: '100%', overflowY: 'auto', padding: '24px 28px' }}
     >
-      <div className="flex flex-col gap-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {messages.map((msg, i) => {
           const isUser = msg.role === 'user'
           const isLastAssistant = !isUser && i === messages.length - 1
 
           return (
-            <div key={i} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-              <div
-                style={{
-                  maxWidth: '70%',
-                  padding: '10px 14px',
-                  borderRadius: '14px',
-                  backgroundColor: isUser ? '#2563eb' : '#ffffff',
-                  color: isUser ? '#ffffff' : '#111827',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                  fontSize: '14px',
-                  lineHeight: '1.6',
-                }}
-              >
+            <div
+              key={i}
+              style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}
+            >
+              <div style={{
+                maxWidth: '72%',
+                padding: '12px 16px',
+                borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                backgroundColor: isUser ? '#1d4ed8' : '#1c1c1e',
+                color: '#e4e4e7',
+                fontSize: '14px',
+                lineHeight: '1.65',
+                border: isUser ? 'none' : '1px solid #2a2a2a',
+              }}>
                 {isUser ? (
-                  <Text size="sm" style={{ color: 'inherit' }}>{msg.content}</Text>
+                  <span>{msg.content}</span>
                 ) : (
                   <div className="markdown-body">
                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                     {streaming && isLastAssistant && (
-                      <span style={{ opacity: 0.6 }}>▌</span>
+                      <span style={{ color: '#52525b', marginLeft: '1px' }}>▌</span>
                     )}
                   </div>
                 )}
@@ -51,23 +51,25 @@ export default function ChatWindow({ messages, loading, streaming }) {
         })}
 
         {loading && !lastIsAssistant && (
-          <div className="flex justify-start">
-            <div
-              style={{
-                padding: '10px 14px',
-                borderRadius: '14px',
-                backgroundColor: '#ffffff',
-                color: '#6b7280',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-              }}
-            >
-              <Text size="sm">Thinking...</Text>
+          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+            <div style={{
+              padding: '14px 18px',
+              borderRadius: '18px 18px 18px 4px',
+              backgroundColor: '#1c1c1e',
+              border: '1px solid #2a2a2a',
+              display: 'flex',
+              gap: '5px',
+              alignItems: 'center',
+            }}>
+              <span className="thinking-dot" style={{ animationDelay: '0ms' }} />
+              <span className="thinking-dot" style={{ animationDelay: '160ms' }} />
+              <span className="thinking-dot" style={{ animationDelay: '320ms' }} />
             </div>
           </div>
         )}
 
         <div ref={bottomRef} />
       </div>
-    </ScrollArea>
+    </div>
   )
 }
