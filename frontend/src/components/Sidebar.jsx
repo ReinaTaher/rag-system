@@ -26,6 +26,7 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat }
         flexShrink: 0,
       }}>
         <button
+          id="tour-new-chat"
           onClick={onNewChat}
           style={{
             width: '100%',
@@ -50,6 +51,7 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat }
 
       {/* Thread list */}
       <div
+        id="tour-thread-list"
         className="dark-scrollbar"
         style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}
       >

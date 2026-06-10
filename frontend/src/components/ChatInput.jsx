@@ -32,6 +32,7 @@ export default function ChatInput({ onSend, disabled }) {
         padding: '8px 8px 8px 16px',
       }}>
         <input
+          id="tour-chat-input"
           type="text"
           placeholder="Ask about CIS Security Controls..."
           value={value}

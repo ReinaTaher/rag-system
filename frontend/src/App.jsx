@@ -3,6 +3,7 @@ import Header from './components/Header'
 import ChatWindow from './components/ChatWindow'
 import ChatInput from './components/ChatInput'
 import Sidebar from './components/Sidebar'
+import GuidedTour from './components/GuidedTour'
 
 const API = 'http://localhost:8000'
 
@@ -12,11 +13,20 @@ export default function App() {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
   const [streaming, setStreaming] = useState(false)
+  const [tourRunning, setTourRunning] = useState(false)
 
-  // Load thread list on mount
+  // Load thread list on mount; show tour on first visit
   useEffect(() => {
     fetchThreads()
+    if (!localStorage.getItem('rag_tour_done')) {
+      setTourRunning(true)
+    }
   }, [])
+
+  function handleTourFinish() {
+    setTourRunning(false)
+    localStorage.setItem('rag_tour_done', '1')
+  }
 
   async function fetchThreads() {
     try {
@@ -123,6 +133,8 @@ export default function App() {
   }
 
   return (
+    <>
+    <GuidedTour run={tourRunning} onFinish={handleTourFinish} />
     <div style={{
       height: '100vh',
       width: '100vw',
@@ -192,5 +204,6 @@ export default function App() {
         </div>
       </div>
     </div>
+    </>
   )
 }
