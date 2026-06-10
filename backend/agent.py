@@ -67,6 +67,12 @@ def _is_rag_query(query: str) -> bool:
 
 def _is_list_all_query(query: str) -> bool:
     q = query.lower()
+    wants_explanation = any(w in q for w in (
+        "explain", "description", "describe", "detail", "short", "brief",
+        "summary", "about", "what does", "what do", "overview", "meaning",
+    ))
+    if wants_explanation:
+        return False
     return "control" in q and ("all" in q or "18" in q) and any(
         w in q for w in ("list", "what are", "name", "show")
     )
