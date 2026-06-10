@@ -47,6 +47,24 @@ def _expand_control_numbers(query: str) -> str:
     return re.sub(r'\bcontrol\s+(\d+)\b', _replace, query, flags=re.IGNORECASE)
 
 
+_RAG_KEYWORDS = {
+    "cis", "control", "controls", "security", "cybersecurity", "vulnerability",
+    "vulnerabilities", "asset", "assets", "malware", "network", "firewall",
+    "patch", "patching", "audit", "access", "authentication", "encryption",
+    "incident", "penetration", "compliance", "risk", "data protection",
+    "backup", "recovery", "monitoring", "log", "logs", "logging", "email",
+    "browser", "software", "hardware", "inventory", "safeguard", "safeguards",
+    "ransomware", "phishing", "endpoint", "privilege", "account", "password",
+    "multifactor", "mfa", "dns", "vpn", "segmentation", "awareness", "training",
+}
+
+
+def _is_rag_query(query: str) -> bool:
+    """Return True if the query is about cybersecurity / CIS Controls."""
+    q_lower = query.lower()
+    return any(kw in q_lower for kw in _RAG_KEYWORDS)
+
+
 def _is_list_all_query(query: str) -> bool:
     q = query.lower()
     return "control" in q and ("all" in q or "18" in q) and any(
@@ -84,6 +102,49 @@ def _format_history(history: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _build_free_chat_prompt(query: str, history: list[dict] | None = None) -> str:
+    history_section = ""
+    if history:
+        history_section = f"Previous conversation:\n{_format_history(history)}\n\n"
+    return (
+        "You are a helpful and friendly AI assistant.\n\n"
+        f"{history_section}"
+        f"Human: {query}\nAssistant:"
+    )
+
+
+def _free_chat_answer(query: str, history: list[dict] | None = None) -> str:
+    prompt = _build_free_chat_prompt(query, history)
+    response = requests.post(
+        f"{OLLAMA_BASE_URL}/api/generate",
+        json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False, "options": {"temperature": 0.7}},
+        timeout=120,
+    )
+    response.raise_for_status()
+    return response.json()["response"]
+
+
+def _stream_free_chat(query: str, history: list[dict] | None = None) -> Generator[str, None, None]:
+    prompt = _build_free_chat_prompt(query, history)
+    response = requests.post(
+        f"{OLLAMA_BASE_URL}/api/generate",
+        json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": True, "options": {"temperature": 0.7}},
+        stream=True,
+        timeout=120,
+    )
+    response.raise_for_status()
+    for line in response.iter_lines():
+        if not line:
+            continue
+        data = json.loads(line)
+        token = data.get("response", "")
+        if token:
+            yield f"data: {json.dumps({'token': token})}\n\n"
+        if data.get("done"):
+            yield "data: [DONE]\n\n"
+            break
+
+
 def generate_answer(
     query: str,
     top_chunks: list[tuple[str, float]],
@@ -106,10 +167,12 @@ def generate_answer(
 
 
 def knowledge_agent(query: str, history: list[dict] | None = None) -> str:
-    """Full RAG pipeline: retrieve → rerank → generate."""
+    """Route to RAG pipeline for security queries, free chat otherwise."""
+    history = (history or [])[-HISTORY_LIMIT:]
+    if not _is_rag_query(query):
+        return _free_chat_answer(query, history)
     if _is_list_all_query(query):
         return _all_controls_answer()
-    history = (history or [])[-HISTORY_LIMIT:]
     retrieval_query = _contextualize_query(query, history)
     chunks = retrieve(retrieval_query, k=RETRIEVE_K)
     top_chunks = rerank(retrieval_query, chunks, top_k=RERANK_TOP_K)
@@ -132,8 +195,9 @@ def _build_prompt(
         "Rules:\n"
         "- Cite specific CIS Control numbers and names when they appear in the context.\n"
         "- If the question asks for a list, respond with a clear numbered or bulleted list.\n"
-        "- Be specific and complete — avoid vague generalities.\n"
-        '- If the answer is not present in the context, respond only with: "This information is not available in the provided context."\n\n'
+        "- If the question asks what a control is or what it covers, give a complete summary: its purpose, why it is critical, and its key safeguards.\n"
+        "- Be specific and complete — avoid one-line answers for overview questions.\n"
+        "- Write your full answer first. Only if the context contains absolutely no relevant information, end with exactly: 'This information is not available in the provided context.' Never add this phrase after you have already given an answer.\n\n"
         f"{history_section}"
         f"Context:\n{context}\n\n"
         f"Question: {query}\n\n"
@@ -144,13 +208,16 @@ def _build_prompt(
 def stream_knowledge_agent(
     query: str, history: list[dict] | None = None
 ) -> Generator[str, None, None]:
-    """Streaming RAG pipeline — yields SSE-formatted token events."""
+    """Route to streaming RAG pipeline for security queries, free chat otherwise."""
+    history = (history or [])[-HISTORY_LIMIT:]
+    if not _is_rag_query(query):
+        yield from _stream_free_chat(query, history)
+        return
     if _is_list_all_query(query):
         for word in _all_controls_answer().split(" "):
             yield f"data: {json.dumps({'token': word + ' '})}\n\n"
         yield "data: [DONE]\n\n"
         return
-    history = (history or [])[-HISTORY_LIMIT:]
     retrieval_query = _contextualize_query(query, history)
     chunks = retrieve(retrieval_query, k=RETRIEVE_K)
     top_chunks = rerank(retrieval_query, chunks, top_k=RERANK_TOP_K)
