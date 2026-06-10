@@ -196,6 +196,10 @@
 button[data-action="primary"] {
   background-color: #1d4ed8 !important;
   color: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 8px !important;
 }
 button[data-action="back"],
 button[data-action="skip"],
