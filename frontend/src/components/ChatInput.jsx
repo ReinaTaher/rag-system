@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useTheme } from '../context/ThemeContext'
 
 export default function ChatInput({ onSend, disabled }) {
+  const { theme } = useTheme()
   const [value, setValue] = useState('')
 
   function handleSend() {
@@ -16,18 +18,20 @@ export default function ChatInput({ onSend, disabled }) {
     }
   }
 
+  const btnDisabled = disabled || !value.trim()
+
   return (
     <div style={{
       padding: '16px 20px',
-      borderTop: '1px solid #222222',
-      backgroundColor: '#111111',
+      borderTop: `1px solid ${theme.headerBorder}`,
+      backgroundColor: theme.cardBg,
     }}>
       <div style={{
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
-        backgroundColor: '#1c1c1e',
-        border: '1px solid #2a2a2a',
+        backgroundColor: theme.inputBg,
+        border: `1px solid ${theme.inputBorder}`,
         borderRadius: '12px',
         padding: '8px 8px 8px 16px',
       }}>
@@ -44,23 +48,23 @@ export default function ChatInput({ onSend, disabled }) {
             background: 'transparent',
             border: 'none',
             outline: 'none',
-            color: '#e4e4e7',
+            color: theme.text,
             fontSize: '14px',
             lineHeight: '1.5',
           }}
         />
         <button
           onClick={handleSend}
-          disabled={disabled || !value.trim()}
+          disabled={btnDisabled}
           style={{
-            backgroundColor: disabled || !value.trim() ? '#27272a' : '#1d4ed8',
-            color: disabled || !value.trim() ? '#52525b' : '#ffffff',
+            backgroundColor: btnDisabled ? theme.btnDisabled : theme.btnPrimary,
+            color: btnDisabled ? theme.btnDisabledText : '#ffffff',
             border: 'none',
             borderRadius: '8px',
             padding: '8px 16px',
             fontSize: '13px',
             fontWeight: '500',
-            cursor: disabled || !value.trim() ? 'not-allowed' : 'pointer',
+            cursor: btnDisabled ? 'not-allowed' : 'pointer',
             transition: 'background-color 0.15s, color 0.15s',
             whiteSpace: 'nowrap',
           }}
@@ -68,7 +72,7 @@ export default function ChatInput({ onSend, disabled }) {
           {disabled ? 'Thinking…' : 'Send'}
         </button>
       </div>
-      <p style={{ margin: '8px 4px 0', fontSize: '11px', color: '#3f3f46' }}>
+      <p style={{ margin: '8px 4px 0', fontSize: '11px', color: theme.footerText }}>
         Answers are based solely on CIS Controls v8 documentation.
       </p>
     </div>

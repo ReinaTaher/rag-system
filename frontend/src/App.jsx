@@ -4,10 +4,12 @@ import ChatWindow from './components/ChatWindow'
 import ChatInput from './components/ChatInput'
 import Sidebar from './components/Sidebar'
 import GuidedTour from './components/GuidedTour'
+import { useTheme } from './context/ThemeContext'
 
 const API = 'http://localhost:8000'
 
 export default function App() {
+  const { theme } = useTheme()
   const [threads, setThreads] = useState([])
   const [activeThreadId, setActiveThreadId] = useState(null)
   const [messages, setMessages] = useState([])
@@ -138,7 +140,7 @@ export default function App() {
     <div style={{
       height: '100vh',
       width: '100vw',
-      backgroundColor: '#0a0a0a',
+      backgroundColor: theme.outerBg,
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
@@ -147,9 +149,9 @@ export default function App() {
         width: '100%',
         maxWidth: '1100px',
         height: '95vh',
-        backgroundColor: '#111111',
+        backgroundColor: theme.cardBg,
         borderRadius: '16px',
-        border: '1px solid #222222',
+        border: `1px solid ${theme.cardBorder}`,
         display: 'flex',
         flexDirection: 'row',
         overflow: 'hidden',
@@ -181,14 +183,14 @@ export default function App() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '14px',
-              color: '#52525b',
+              color: theme.textFaint,
             }}>
               <p style={{ fontSize: '15px' }}>Select a conversation or start a new one</p>
               <button
                 onClick={createThread}
                 style={{
                   padding: '10px 22px',
-                  backgroundColor: '#1d4ed8',
+                  backgroundColor: theme.btnPrimary,
                   color: '#fff',
                   border: 'none',
                   borderRadius: '8px',

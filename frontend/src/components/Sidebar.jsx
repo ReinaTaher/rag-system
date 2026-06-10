@@ -1,4 +1,8 @@
+import { useTheme } from '../context/ThemeContext'
+
 export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat }) {
+  const { theme } = useTheme()
+
   function timeAgo(dateStr) {
     const diff = Date.now() - new Date(dateStr).getTime()
     const mins = Math.floor(diff / 60000)
@@ -13,16 +17,15 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat }
     <div style={{
       width: '240px',
       flexShrink: 0,
-      backgroundColor: '#0d0d0d',
-      borderRight: '1px solid #1e1e1e',
+      backgroundColor: theme.sidebarBg,
+      borderRight: `1px solid ${theme.sidebarBorder}`,
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
     }}>
-      {/* Header */}
       <div style={{
         padding: '16px 14px 12px',
-        borderBottom: '1px solid #1e1e1e',
+        borderBottom: `1px solid ${theme.sidebarBorder}`,
         flexShrink: 0,
       }}>
         <button
@@ -31,7 +34,7 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat }
           style={{
             width: '100%',
             padding: '9px 12px',
-            backgroundColor: '#1d4ed8',
+            backgroundColor: theme.btnPrimary,
             color: '#fff',
             border: 'none',
             borderRadius: '8px',
@@ -49,14 +52,13 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat }
         </button>
       </div>
 
-      {/* Thread list */}
       <div
         id="tour-thread-list"
         className="dark-scrollbar"
         style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}
       >
         {threads.length === 0 && (
-          <p style={{ color: '#3f3f46', fontSize: '12px', textAlign: 'center', marginTop: '24px' }}>
+          <p style={{ color: theme.textFaint, fontSize: '12px', textAlign: 'center', marginTop: '24px' }}>
             No conversations yet
           </p>
         )}
@@ -69,19 +71,19 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat }
               style={{
                 width: '100%',
                 padding: '9px 10px',
-                backgroundColor: isActive ? '#1c2a4a' : 'transparent',
-                border: isActive ? '1px solid #1d3a7a' : '1px solid transparent',
+                backgroundColor: isActive ? theme.activeThread : 'transparent',
+                border: `1px solid ${isActive ? theme.activeThreadBorder : 'transparent'}`,
                 borderRadius: '7px',
                 cursor: 'pointer',
                 textAlign: 'left',
                 marginBottom: '3px',
                 transition: 'background 0.1s',
               }}
-              onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = '#161616' }}
+              onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = theme.threadHover }}
               onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent' }}
             >
               <div style={{
-                color: isActive ? '#e4e4e7' : '#a1a1aa',
+                color: isActive ? theme.text : theme.textMuted,
                 fontSize: '13px',
                 fontWeight: isActive ? '500' : '400',
                 whiteSpace: 'nowrap',
@@ -90,7 +92,7 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat }
               }}>
                 {thread.title || 'New Chat'}
               </div>
-              <div style={{ color: '#52525b', fontSize: '11px', marginTop: '2px' }}>
+              <div style={{ color: theme.textFaint, fontSize: '11px', marginTop: '2px' }}>
                 {timeAgo(thread.updated_at || thread.created_at)}
               </div>
             </button>

@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { useTheme } from '../context/ThemeContext'
 
 export default function ChatWindow({ messages, loading, streaming }) {
+  const { theme } = useTheme()
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -29,11 +31,11 @@ export default function ChatWindow({ messages, loading, streaming }) {
                 maxWidth: '72%',
                 padding: '12px 16px',
                 borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                backgroundColor: isUser ? '#1d4ed8' : '#1c1c1e',
-                color: '#e4e4e7',
+                backgroundColor: isUser ? theme.userBubble : theme.assistantBubble,
+                color: isUser ? theme.userText : theme.text,
                 fontSize: '14px',
                 lineHeight: '1.65',
-                border: isUser ? 'none' : '1px solid #2a2a2a',
+                border: isUser ? 'none' : `1px solid ${theme.assistantBubbleBorder}`,
               }}>
                 {isUser ? (
                   <span>{msg.content}</span>
@@ -41,7 +43,7 @@ export default function ChatWindow({ messages, loading, streaming }) {
                   <div className="markdown-body">
                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                     {streaming && isLastAssistant && (
-                      <span style={{ color: '#52525b', marginLeft: '1px' }}>▌</span>
+                      <span style={{ color: theme.textFaint, marginLeft: '1px' }}>▌</span>
                     )}
                   </div>
                 )}
@@ -55,8 +57,8 @@ export default function ChatWindow({ messages, loading, streaming }) {
             <div style={{
               padding: '14px 18px',
               borderRadius: '18px 18px 18px 4px',
-              backgroundColor: '#1c1c1e',
-              border: '1px solid #2a2a2a',
+              backgroundColor: theme.assistantBubble,
+              border: `1px solid ${theme.assistantBubbleBorder}`,
               display: 'flex',
               gap: '5px',
               alignItems: 'center',
