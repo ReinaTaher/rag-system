@@ -207,6 +207,9 @@ button[data-action="close"] {
   color: #71717a !important;
 }
 
+/* ── Thread delete button: show on row hover ── */
+.thread-row:hover .delete-btn { opacity: 1 !important; }
+
 /* ── Input placeholder ── */
 input::placeholder { color: #52525b; }
 [data-theme="light"] input::placeholder { color: #a1a1aa; }

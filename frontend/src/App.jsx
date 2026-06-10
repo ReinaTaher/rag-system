@@ -56,6 +56,19 @@ export default function App() {
     }
   }
 
+  async function deleteThread(threadId) {
+    try {
+      await fetch(`${API}/threads/${threadId}`, { method: 'DELETE' })
+      setThreads(prev => prev.filter(t => t.id !== threadId))
+      if (activeThreadId === threadId) {
+        setActiveThreadId(null)
+        setMessages([])
+      }
+    } catch {
+      console.error('Failed to delete thread')
+    }
+  }
+
   async function selectThread(threadId) {
     setActiveThreadId(threadId)
     setMessages([])
@@ -162,6 +175,7 @@ export default function App() {
           activeThreadId={activeThreadId}
           onSelect={selectThread}
           onNewChat={createThread}
+          onDelete={deleteThread}
         />
 
         {/* Main chat area */}

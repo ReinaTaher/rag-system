@@ -1,4 +1,6 @@
+import asyncio
 import json
+import threading
 from datetime import datetime, timezone
 
 from bson import ObjectId
@@ -15,7 +17,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -116,8 +118,23 @@ async def thread_chat_stream(thread_id: str, request: ChatRequest):
     history = [m.model_dump() for m in request.history]
 
     async def generate():
+        loop = asyncio.get_event_loop()
+        queue: asyncio.Queue = asyncio.Queue()
+
+        def run_sync():
+            try:
+                for chunk in stream_knowledge_agent(request.message, history):
+                    loop.call_soon_threadsafe(queue.put_nowait, chunk)
+            finally:
+                loop.call_soon_threadsafe(queue.put_nowait, None)  # sentinel
+
+        threading.Thread(target=run_sync, daemon=True).start()
+
         full_response = ""
-        for chunk in stream_knowledge_agent(request.message, history):
+        while True:
+            chunk = await queue.get()
+            if chunk is None:
+                break
             yield chunk
             if chunk.startswith("data: ") and "[DONE]" not in chunk:
                 try:
@@ -138,6 +155,15 @@ async def thread_chat_stream(thread_id: str, request: ChatRequest):
         media_type="text/event-stream",
         headers={"X-Accel-Buffering": "no"},
     )
+
+
+@app.delete("/threads/{thread_id}")
+async def delete_thread(thread_id: str):
+    if not ObjectId.is_valid(thread_id):
+        raise HTTPException(status_code=400, detail="Invalid thread ID")
+    await threads_collection.delete_one({"_id": ObjectId(thread_id)})
+    await messages_collection.delete_many({"thread_id": thread_id})
+    return {"ok": True}
 
 
 # ── Original endpoints (kept for reference) ──────────────────────────────────

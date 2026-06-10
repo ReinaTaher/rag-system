@@ -1,6 +1,6 @@
 import { useTheme } from '../context/ThemeContext'
 
-export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat }) {
+export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, onDelete }) {
   const { theme } = useTheme()
 
   function timeAgo(dateStr) {
@@ -65,37 +65,69 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat }
         {threads.map(thread => {
           const isActive = thread.id === activeThreadId
           return (
-            <button
+            <div
               key={thread.id}
-              onClick={() => onSelect(thread.id)}
-              style={{
-                width: '100%',
-                padding: '9px 10px',
-                backgroundColor: isActive ? theme.activeThread : 'transparent',
-                border: `1px solid ${isActive ? theme.activeThreadBorder : 'transparent'}`,
-                borderRadius: '7px',
-                cursor: 'pointer',
-                textAlign: 'left',
-                marginBottom: '3px',
-                transition: 'background 0.1s',
-              }}
-              onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = theme.threadHover }}
-              onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent' }}
+              className="thread-row"
+              style={{ position: 'relative', marginBottom: '3px' }}
             >
-              <div style={{
-                color: isActive ? theme.text : theme.textMuted,
-                fontSize: '13px',
-                fontWeight: isActive ? '500' : '400',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}>
-                {thread.title || 'New Chat'}
-              </div>
-              <div style={{ color: theme.textFaint, fontSize: '11px', marginTop: '2px' }}>
-                {timeAgo(thread.updated_at || thread.created_at)}
-              </div>
-            </button>
+              <button
+                onClick={() => onSelect(thread.id)}
+                style={{
+                  width: '100%',
+                  padding: '9px 32px 9px 10px',
+                  backgroundColor: isActive ? theme.activeThread : 'transparent',
+                  border: `1px solid ${isActive ? theme.activeThreadBorder : 'transparent'}`,
+                  borderRadius: '7px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'background 0.1s',
+                }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = theme.threadHover }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent' }}
+              >
+                <div style={{
+                  color: isActive ? theme.text : theme.textMuted,
+                  fontSize: '13px',
+                  fontWeight: isActive ? '500' : '400',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}>
+                  {thread.title || 'New Chat'}
+                </div>
+                <div style={{ color: theme.textFaint, fontSize: '11px', marginTop: '2px' }}>
+                  {timeAgo(thread.updated_at || thread.created_at)}
+                </div>
+              </button>
+
+              <button
+                className="delete-btn"
+                onClick={e => {
+                  e.stopPropagation()
+                  if (window.confirm('Delete this conversation?')) onDelete(thread.id)
+                }}
+                title="Delete conversation"
+                style={{
+                  position: 'absolute',
+                  right: '6px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: theme.textFaint,
+                  fontSize: '14px',
+                  padding: '2px 4px',
+                  borderRadius: '4px',
+                  opacity: 0,
+                  transition: 'opacity 0.15s, color 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#ef4444' }}
+                onMouseLeave={e => { e.currentTarget.style.color = theme.textFaint }}
+              >
+                ✕
+              </button>
+            </div>
           )
         })}
       </div>
