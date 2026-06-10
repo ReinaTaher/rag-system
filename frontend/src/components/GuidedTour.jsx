@@ -57,18 +57,24 @@ const tourStyles = {
   },
   buttonNext: {
     backgroundColor: '#1d4ed8',
+    color: '#ffffff',
     borderRadius: '7px',
     fontSize: '13px',
     fontWeight: '500',
     padding: '7px 16px',
+    outline: 'none',
   },
   buttonBack: {
     color: '#71717a',
     fontSize: '13px',
+    marginRight: '6px',
   },
   buttonSkip: {
-    color: '#52525b',
+    color: '#71717a',
     fontSize: '12px',
+  },
+  buttonClose: {
+    color: '#71717a',
   },
 }
 

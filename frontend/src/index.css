@@ -129,6 +129,11 @@
     }
 }
 
+/* ── Smooth theme transition ── */
+*, *::before, *::after {
+  transition: background-color 0.25s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
 /* ── Scrollbar ── */
 .dark-scrollbar::-webkit-scrollbar        { width: 6px; }
 .dark-scrollbar::-webkit-scrollbar-track  { background: transparent; }
