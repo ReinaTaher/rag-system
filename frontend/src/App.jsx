@@ -1,22 +1,78 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Header from './components/Header'
 import ChatWindow from './components/ChatWindow'
 import ChatInput from './components/ChatInput'
+import Sidebar from './components/Sidebar'
+
+const API = 'http://localhost:8000'
 
 export default function App() {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hi! Ask me anything about CIS Security Controls.' }
-  ])
+  const [threads, setThreads] = useState([])
+  const [activeThreadId, setActiveThreadId] = useState(null)
+  const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
   const [streaming, setStreaming] = useState(false)
 
+  // Load thread list on mount
+  useEffect(() => {
+    fetchThreads()
+  }, [])
+
+  async function fetchThreads() {
+    try {
+      const res = await fetch(`${API}/threads`)
+      const data = await res.json()
+      setThreads(data)
+    } catch {
+      // backend not ready yet — ignore silently
+    }
+  }
+
+  async function createThread() {
+    try {
+      const res = await fetch(`${API}/threads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'New Chat' }),
+      })
+      const thread = await res.json()
+      setThreads(prev => [thread, ...prev])
+      setActiveThreadId(thread.id)
+      setMessages([{ role: 'assistant', content: 'Hi! Ask me anything about CIS Security Controls.' }])
+    } catch {
+      console.error('Failed to create thread')
+    }
+  }
+
+  async function selectThread(threadId) {
+    setActiveThreadId(threadId)
+    setMessages([])
+    try {
+      const res = await fetch(`${API}/threads/${threadId}/messages`)
+      const data = await res.json()
+      const loaded = data.map(m => ({ role: m.role, content: m.content }))
+      setMessages(
+        loaded.length > 0
+          ? loaded
+          : [{ role: 'assistant', content: 'Hi! Ask me anything about CIS Security Controls.' }]
+      )
+    } catch {
+      console.error('Failed to load messages')
+    }
+  }
+
   async function sendMessage(text) {
-    const history = messages.slice(1).slice(-6)
+    if (!activeThreadId) return
+
+    const history = messages
+      .filter(m => m.role !== 'assistant' || messages.indexOf(m) !== 0)
+      .slice(-6)
+
     setMessages(prev => [...prev, { role: 'user', content: text }])
     setLoading(true)
 
     try {
-      const res = await fetch('http://localhost:8000/chat/stream', {
+      const res = await fetch(`${API}/threads/${activeThreadId}/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, history }),
@@ -54,6 +110,9 @@ export default function App() {
           } catch { /* malformed line, skip */ }
         }
       }
+
+      // Refresh sidebar so updated_at and title reflect latest activity
+      fetchThreads()
     } catch {
       setLoading(false)
       setMessages(prev => [...prev, { role: 'assistant', content: 'Error: could not reach the backend.' }])
@@ -74,20 +133,63 @@ export default function App() {
     }}>
       <div style={{
         width: '100%',
-        maxWidth: '860px',
+        maxWidth: '1100px',
         height: '95vh',
         backgroundColor: '#111111',
         borderRadius: '16px',
         border: '1px solid #222222',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         overflow: 'hidden',
       }}>
-        <Header />
-        <div style={{ flex: 1, minHeight: 0 }}>
-          <ChatWindow messages={messages} loading={loading} streaming={streaming} />
+        {/* Sidebar */}
+        <Sidebar
+          threads={threads}
+          activeThreadId={activeThreadId}
+          onSelect={selectThread}
+          onNewChat={createThread}
+        />
+
+        {/* Main chat area */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <Header />
+
+          {activeThreadId ? (
+            <>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <ChatWindow messages={messages} loading={loading} streaming={streaming} />
+              </div>
+              <ChatInput onSend={sendMessage} disabled={loading || streaming} />
+            </>
+          ) : (
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '14px',
+              color: '#52525b',
+            }}>
+              <p style={{ fontSize: '15px' }}>Select a conversation or start a new one</p>
+              <button
+                onClick={createThread}
+                style={{
+                  padding: '10px 22px',
+                  backgroundColor: '#1d4ed8',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                }}
+              >
+                New Chat
+              </button>
+            </div>
+          )}
         </div>
-        <ChatInput onSend={sendMessage} disabled={loading || streaming} />
       </div>
     </div>
   )
