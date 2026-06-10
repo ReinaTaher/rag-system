@@ -192,6 +192,17 @@
   color: #0369a1;
 }
 
+/* ── Guided tour button overrides ── */
+button[data-action="primary"] {
+  background-color: #1d4ed8 !important;
+  color: #ffffff !important;
+}
+button[data-action="back"],
+button[data-action="skip"],
+button[data-action="close"] {
+  color: #71717a !important;
+}
+
 /* ── Input placeholder ── */
 input::placeholder { color: #52525b; }
 [data-theme="light"] input::placeholder { color: #a1a1aa; }
