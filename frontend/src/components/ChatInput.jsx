@@ -1,9 +1,14 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useTheme } from '../context/ThemeContext'
 
 export default function ChatInput({ onSend, disabled }) {
   const { theme } = useTheme()
   const [value, setValue] = useState('')
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (!disabled) inputRef.current?.focus()
+  }, [disabled])
 
   function handleSend() {
     if (!value.trim() || disabled) return
@@ -37,6 +42,7 @@ export default function ChatInput({ onSend, disabled }) {
       }}>
         <input
           id="tour-chat-input"
+          ref={inputRef}
           type="text"
           placeholder="Ask about CIS Security Controls..."
           value={value}
