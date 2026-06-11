@@ -23,6 +23,8 @@ export default function App() {
   const [streaming, setStreaming] = useState(false)
   const [tourRunning, setTourRunning] = useState(false)
   const [messageFeedback, setMessageFeedback] = useState({})
+  const [compareMode, setCompareMode] = useState(null)
+  // compareMode shape: { msgIndex, content, sources, streaming }
 
   useEffect(() => {
     if (windowWidth >= 640) setSidebarOpen(true)
@@ -313,6 +315,81 @@ export default function App() {
     }
   }
 
+  async function startComparison(msgIndex) {
+    const msg = messages[msgIndex]
+    if (!msg.id || streaming || loading || compareMode) return
+
+    let userQuery = ''
+    let historyUpToMsg = []
+    for (let i = msgIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        userQuery = messages[i].content
+        historyUpToMsg = messages.slice(0, i).map(m => ({ role: m.role, content: m.content })).slice(-6)
+        break
+      }
+    }
+    if (!userQuery) return
+
+    setCompareMode({ msgIndex, content: '', sources: null, streaming: true })
+
+    try {
+      const res = await fetch(`${API}/threads/${activeThreadId}/messages/${msg.id}/compare`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userQuery, history: historyUpToMsg }),
+      })
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const lines = decoder.decode(value).split('\n')
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const data = line.slice(6)
+          if (data === '[DONE]') break
+
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed.replace !== undefined) {
+              setCompareMode(prev => prev ? { ...prev, content: parsed.replace } : null)
+            } else if (parsed.sources) {
+              setCompareMode(prev => prev ? { ...prev, sources: parsed.sources } : null)
+            } else if (parsed.token !== undefined) {
+              setCompareMode(prev => prev ? { ...prev, content: prev.content + parsed.token } : null)
+            }
+          } catch { /* skip */ }
+        }
+      }
+    } catch {
+      console.error('Comparison failed')
+      setCompareMode(null)
+    } finally {
+      setCompareMode(prev => prev ? { ...prev, streaming: false } : null)
+    }
+  }
+
+  function dismissComparison() {
+    setCompareMode(null)
+  }
+
+  function keepComparison() {
+    if (!compareMode) return
+    setMessages(prev => {
+      const updated = [...prev]
+      updated[compareMode.msgIndex] = {
+        ...updated[compareMode.msgIndex],
+        content: compareMode.content,
+        sources: compareMode.sources,
+      }
+      return updated
+    })
+    setCompareMode(null)
+  }
+
   function exportPDF() {
     if (!activeThreadId || messages.length === 0) return
     const activeThread = threads.find(t => t.id === activeThreadId)
@@ -504,6 +581,10 @@ export default function App() {
                   onFeedback={submitFeedback}
                   messageFeedback={messageFeedback}
                   isMobile={isMobile}
+                  compareMode={compareMode}
+                  onCompare={startComparison}
+                  onDismissCompare={dismissComparison}
+                  onKeepCompare={keepComparison}
                 />
               </div>
               <ChatInput onSend={sendMessage} disabled={loading || streaming} />

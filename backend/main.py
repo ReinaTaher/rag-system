@@ -257,6 +257,29 @@ async def regenerate_message(thread_id: str, message_id: str, request: ChatReque
     )
 
 
+@app.post("/threads/{thread_id}/messages/{message_id}/compare")
+async def compare_message(thread_id: str, message_id: str, request: ChatRequest):
+    """Stream an alternative generation at higher temperature without persisting."""
+    if not ObjectId.is_valid(message_id):
+        raise HTTPException(status_code=400, detail="Invalid message ID")
+
+    history = [m.model_dump() for m in request.history]
+
+    async def generate():
+        queue = _make_streamer(request.message, history, temperature=0.5)
+        while True:
+            chunk = await queue.get()
+            if chunk is None:
+                break
+            yield chunk
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"X-Accel-Buffering": "no"},
+    )
+
+
 @app.get("/messages/{message_id}/versions")
 async def get_message_versions(message_id: str):
     if not ObjectId.is_valid(message_id):

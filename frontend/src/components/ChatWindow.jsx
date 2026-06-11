@@ -9,7 +9,7 @@ function preprocessCitations(text) {
   return text.replace(/\[(\d+)\]/g, (_, n) => `[[${n}]](#cite-${n})`)
 }
 
-export default function ChatWindow({ messages, loading, streaming, onRegenerate, onSwitchVersion, onFeedback, messageFeedback, isMobile }) {
+export default function ChatWindow({ messages, loading, streaming, onRegenerate, onSwitchVersion, onFeedback, messageFeedback, isMobile, compareMode, onCompare, onDismissCompare, onKeepCompare }) {
   const { theme } = useTheme()
   const bottomRef = useRef(null)
 
@@ -39,6 +39,135 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
             ? (msg.versions.find(v => v.version_num === displayedVersion)?.sources ?? null)
             : msg.sources
 
+          const isComparing = !isUser && compareMode?.msgIndex === i
+
+          // ── Compare split view ───────────────────────────────────────────
+          if (isComparing) {
+            const bubbleBase = {
+              flex: 1,
+              minWidth: 0,
+              padding: '12px 16px',
+              borderRadius: '12px',
+              backgroundColor: theme.assistantBubble,
+              color: theme.text,
+              fontSize: '14px',
+              lineHeight: '1.65',
+              border: `1px solid ${theme.assistantBubbleBorder}`,
+            }
+            return (
+              <div key={i} style={{ width: '100%' }}>
+                {/* Version labels */}
+                <div style={{
+                  display: 'flex',
+                  gap: '12px',
+                  marginBottom: '6px',
+                  flexDirection: isMobile ? 'column' : 'row',
+                }}>
+                  <div style={{ flex: 1, fontSize: '11px', fontWeight: '600', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Version A · Current
+                  </div>
+                  <div style={{ flex: 1, fontSize: '11px', fontWeight: '600', color: compareMode.streaming ? theme.btnPrimary : theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Version B · {compareMode.streaming ? 'Generating…' : 'New'}
+                  </div>
+                </div>
+
+                {/* Side-by-side panels */}
+                <div style={{
+                  display: 'flex',
+                  gap: '12px',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  alignItems: 'flex-start',
+                }}>
+                  {/* Version A */}
+                  <div style={bubbleBase}>
+                    <div className="markdown-body">
+                      <ReactMarkdown
+                        components={{
+                          a({ href, children }) {
+                            if (href?.startsWith('#cite-')) {
+                              const id = parseInt(href.slice(6), 10)
+                              const source = displayedSources?.find(s => s.id === id) || null
+                              return <CitationTooltip id={id} source={source} isMobile={isMobile} />
+                            }
+                            return <a href={href} target="_blank" rel="noreferrer">{children}</a>
+                          },
+                        }}
+                      >
+                        {preprocessCitations(displayedContent)}
+                      </ReactMarkdown>
+                    </div>
+                    <SourcesPanel sources={displayedSources} />
+                  </div>
+
+                  {/* Version B */}
+                  <div style={{ ...bubbleBase, borderColor: compareMode.streaming ? theme.btnPrimary : theme.assistantBubbleBorder }}>
+                    <div className="markdown-body">
+                      <ReactMarkdown
+                        components={{
+                          a({ href, children }) {
+                            if (href?.startsWith('#cite-')) {
+                              const id = parseInt(href.slice(6), 10)
+                              const source = compareMode.sources?.find(s => s.id === id) || null
+                              return <CitationTooltip id={id} source={source} isMobile={isMobile} />
+                            }
+                            return <a href={href} target="_blank" rel="noreferrer">{children}</a>
+                          },
+                        }}
+                      >
+                        {preprocessCitations(compareMode.content || ' ')}
+                      </ReactMarkdown>
+                      {compareMode.streaming && (
+                        <span style={{ color: theme.btnPrimary, marginLeft: '1px' }}>▌</span>
+                      )}
+                    </div>
+                    {!compareMode.streaming && <SourcesPanel sources={compareMode.sources} />}
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                {!compareMode.streaming && (
+                  <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    marginTop: '10px',
+                    justifyContent: 'center',
+                  }}>
+                    <button
+                      onClick={onKeepCompare}
+                      style={{
+                        padding: '7px 18px',
+                        backgroundColor: theme.btnPrimary,
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Use Version B
+                    </button>
+                    <button
+                      onClick={onDismissCompare}
+                      style={{
+                        padding: '7px 18px',
+                        backgroundColor: 'transparent',
+                        color: theme.textMuted,
+                        border: `1px solid ${theme.inputBorder}`,
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Keep Version A
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+          // ── Normal message bubble ────────────────────────────────────────
           return (
             <div
               key={i}
@@ -80,7 +209,7 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
 
                     {!isStreaming && <SourcesPanel sources={displayedSources} />}
 
-                    {/* Action row: regenerate + version switcher + feedback */}
+                    {/* Action row: regenerate + compare + version switcher + feedback */}
                     {!isStreaming && msg.id && (
                       <div style={{
                         display: 'flex',
@@ -89,26 +218,48 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
                         marginTop: '10px',
                         paddingTop: '8px',
                         borderTop: `1px solid ${theme.assistantBubbleBorder}`,
+                        flexWrap: 'wrap',
                       }}>
                         <button
                           onClick={() => onRegenerate(i)}
-                          disabled={streaming || loading}
+                          disabled={streaming || loading || compareMode !== null}
                           title="Regenerate response"
                           style={{
                             background: 'none',
                             border: 'none',
-                            cursor: streaming || loading ? 'not-allowed' : 'pointer',
+                            cursor: streaming || loading || compareMode ? 'not-allowed' : 'pointer',
                             color: theme.textFaint,
                             fontSize: '13px',
                             padding: '2px 4px',
                             borderRadius: '4px',
-                            opacity: streaming || loading ? 0.4 : 1,
+                            opacity: streaming || loading || compareMode ? 0.4 : 1,
                             transition: 'color 0.15s',
                           }}
-                          onMouseEnter={e => { if (!streaming && !loading) e.currentTarget.style.color = theme.text }}
+                          onMouseEnter={e => { if (!streaming && !loading && !compareMode) e.currentTarget.style.color = theme.text }}
                           onMouseLeave={e => { e.currentTarget.style.color = theme.textFaint }}
                         >
                           ↺ Regenerate
+                        </button>
+
+                        <button
+                          onClick={() => onCompare(i)}
+                          disabled={streaming || loading || compareMode !== null}
+                          title="Compare with an alternative generation"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: streaming || loading || compareMode ? 'not-allowed' : 'pointer',
+                            color: theme.textFaint,
+                            fontSize: '13px',
+                            padding: '2px 4px',
+                            borderRadius: '4px',
+                            opacity: streaming || loading || compareMode ? 0.4 : 1,
+                            transition: 'color 0.15s',
+                          }}
+                          onMouseEnter={e => { if (!streaming && !loading && !compareMode) e.currentTarget.style.color = theme.btnPrimary }}
+                          onMouseLeave={e => { e.currentTarget.style.color = theme.textFaint }}
+                        >
+                          ⇌ Compare
                         </button>
 
                         {(msg.version_count ?? 1) > 1 && (
