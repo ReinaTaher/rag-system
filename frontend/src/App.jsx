@@ -189,6 +189,11 @@ export default function App() {
     if (!userQuery) return
 
     setStreaming(true)
+    setMessageFeedback(prev => {
+      const updated = { ...prev }
+      delete updated[msg.id]
+      return updated
+    })
     setMessages(prev => {
       const updated = [...prev]
       updated[msgIndex] = { ...updated[msgIndex], content: '', sources: null, versions: null }
