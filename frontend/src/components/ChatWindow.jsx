@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useTheme } from '../context/ThemeContext'
+import FeedbackButtons from './FeedbackButtons'
 
-export default function ChatWindow({ messages, loading, streaming }) {
+export default function ChatWindow({ messages, loading, streaming, onFeedback, messageFeedback }) {
   const { theme } = useTheme()
   const bottomRef = useRef(null)
 
@@ -40,12 +41,25 @@ export default function ChatWindow({ messages, loading, streaming }) {
                 {isUser ? (
                   <span>{msg.content}</span>
                 ) : (
-                  <div className="markdown-body">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    {streaming && isLastAssistant && (
-                      <span style={{ color: theme.textFaint, marginLeft: '1px' }}>▌</span>
+                  <>
+                    <div className="markdown-body">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      {streaming && isLastAssistant && (
+                        <span style={{ color: theme.textFaint, marginLeft: '1px' }}>▌</span>
+                      )}
+                    </div>
+
+                    {/* Feedback — only after stream finishes and message has a DB id */}
+                    {!streaming && msg.id && (
+                      <div style={{
+                        marginTop: '10px',
+                        paddingTop: '8px',
+                        borderTop: `1px solid ${theme.assistantBubbleBorder}`,
+                      }}>
+                        <FeedbackButtons messageId={msg.id} voted={messageFeedback?.[msg.id] ?? null} onFeedback={onFeedback} />
+                      </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             </div>

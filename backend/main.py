@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from agent import knowledge_agent, stream_knowledge_agent
-from database import threads_collection, messages_collection
+from database import threads_collection, messages_collection, feedback_collection
 
 app = FastAPI()
 
@@ -40,6 +40,11 @@ class ChatResponse(BaseModel):
 
 class CreateThreadRequest(BaseModel):
     title: str = ""
+
+
+class FeedbackRequest(BaseModel):
+    vote: str        # "up" or "down"
+    reason: str = "" # required when vote == "down"
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -135,20 +140,23 @@ async def thread_chat_stream(thread_id: str, request: ChatRequest):
             chunk = await queue.get()
             if chunk is None:
                 break
+            if "data: [DONE]" in chunk:
+                continue  # emit our own [DONE] below after saving
             yield chunk
-            if chunk.startswith("data: ") and "[DONE]" not in chunk:
+            if chunk.startswith("data: "):
                 try:
                     full_response += json.loads(chunk[6:]).get("token", "")
                 except Exception:
                     pass
 
-        # Save assistant response after stream ends
-        await messages_collection.insert_one({
+        result = await messages_collection.insert_one({
             "thread_id": thread_id,
             "role": "assistant",
             "content": full_response,
             "created_at": _now(),
         })
+        yield f"data: {json.dumps({'message_id': str(result.inserted_id)})}\n\n"
+        yield "data: [DONE]\n\n"
 
     return StreamingResponse(
         generate(),
@@ -163,6 +171,26 @@ async def delete_thread(thread_id: str):
         raise HTTPException(status_code=400, detail="Invalid thread ID")
     await threads_collection.delete_one({"_id": ObjectId(thread_id)})
     await messages_collection.delete_many({"thread_id": thread_id})
+    return {"ok": True}
+
+
+# ── Feedback ─────────────────────────────────────────────────────────────────
+
+@app.post("/messages/{message_id}/feedback")
+async def submit_feedback(message_id: str, body: FeedbackRequest):
+    if not ObjectId.is_valid(message_id):
+        raise HTTPException(status_code=400, detail="Invalid message ID")
+    if body.vote not in ("up", "down"):
+        raise HTTPException(status_code=400, detail="vote must be 'up' or 'down'")
+    if body.vote == "down" and not body.reason.strip():
+        raise HTTPException(status_code=400, detail="reason is required for downvotes")
+
+    await feedback_collection.insert_one({
+        "message_id": message_id,
+        "vote": body.vote,
+        "reason": body.reason.strip() if body.vote == "down" else None,
+        "created_at": _now(),
+    })
     return {"ok": True}
 
 

@@ -16,6 +16,7 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [streaming, setStreaming] = useState(false)
   const [tourRunning, setTourRunning] = useState(false)
+  const [messageFeedback, setMessageFeedback] = useState({})
 
   // Load thread list on mount; show tour on first visit
   useEffect(() => {
@@ -75,7 +76,7 @@ export default function App() {
     try {
       const res = await fetch(`${API}/threads/${threadId}/messages`)
       const data = await res.json()
-      const loaded = data.map(m => ({ role: m.role, content: m.content }))
+      const loaded = data.map(m => ({ role: m.role, content: m.content, id: m.id || null }))
       setMessages(
         loaded.length > 0
           ? loaded
@@ -93,7 +94,7 @@ export default function App() {
       .filter(m => m.role !== 'assistant' || messages.indexOf(m) !== 0)
       .slice(-6)
 
-    setMessages(prev => [...prev, { role: 'user', content: text }])
+    setMessages(prev => [...prev, { role: 'user', content: text, id: null }])
     setLoading(true)
 
     try {
@@ -118,19 +119,29 @@ export default function App() {
           if (data === '[DONE]') break
 
           try {
-            const { token } = JSON.parse(data)
-            if (firstToken) {
-              firstToken = false
-              setLoading(false)
-              setStreaming(true)
-              setMessages(prev => [...prev, { role: 'assistant', content: token }])
-            } else {
+            const parsed = JSON.parse(data)
+            if (parsed.message_id) {
               setMessages(prev => {
                 const updated = [...prev]
                 const last = updated[updated.length - 1]
-                updated[updated.length - 1] = { ...last, content: last.content + token }
+                updated[updated.length - 1] = { ...last, id: parsed.message_id }
                 return updated
               })
+            } else if (parsed.token !== undefined) {
+              const { token } = parsed
+              if (firstToken) {
+                firstToken = false
+                setLoading(false)
+                setStreaming(true)
+                setMessages(prev => [...prev, { role: 'assistant', content: token, id: null }])
+              } else {
+                setMessages(prev => {
+                  const updated = [...prev]
+                  const last = updated[updated.length - 1]
+                  updated[updated.length - 1] = { ...last, content: last.content + token }
+                  return updated
+                })
+              }
             }
           } catch { /* malformed line, skip */ }
         }
@@ -144,6 +155,19 @@ export default function App() {
     } finally {
       setLoading(false)
       setStreaming(false)
+    }
+  }
+
+  async function submitFeedback(messageId, vote, reason) {
+    try {
+      await fetch(`${API}/messages/${messageId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vote, reason: reason || '' }),
+      })
+      setMessageFeedback(prev => ({ ...prev, [messageId]: vote }))
+    } catch {
+      console.error('Failed to submit feedback')
     }
   }
 
@@ -185,7 +209,7 @@ export default function App() {
           {activeThreadId ? (
             <>
               <div style={{ flex: 1, minHeight: 0 }}>
-                <ChatWindow messages={messages} loading={loading} streaming={streaming} />
+                <ChatWindow messages={messages} loading={loading} streaming={streaming} onFeedback={submitFeedback} messageFeedback={messageFeedback} />
               </div>
               <ChatInput onSend={sendMessage} disabled={loading || streaming} />
             </>

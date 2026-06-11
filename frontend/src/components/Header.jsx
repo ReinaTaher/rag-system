@@ -1,3 +1,4 @@
+import { Sun, Moon } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
 export default function Header() {
@@ -56,7 +57,7 @@ export default function Header() {
             color: theme.textMuted,
           }}
         >
-          {isDark ? '☀️' : '🌙'}
+          {isDark ? <Sun size={14} /> : <Moon size={14} />}
         </button>
       </div>
     </div>
