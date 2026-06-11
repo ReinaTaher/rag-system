@@ -198,6 +198,16 @@ def _build_sources_payload(top_chunks: list[tuple[dict, float]]) -> list[dict]:
     ]
 
 
+def _strip_references_section(text: str) -> str:
+    """Remove any trailing References/Sources/Bibliography section the LLM may have added."""
+    return re.sub(
+        r'\n+(?:References|Sources|Bibliography|Citations)\s*:?.*$',
+        '',
+        text,
+        flags=re.DOTALL | re.IGNORECASE,
+    ).rstrip()
+
+
 def _normalize_citations(text: str, sources: list[dict]) -> tuple[str, list[dict]]:
     """
     Renumber citations sequentially based on order of first appearance and
@@ -249,16 +259,16 @@ def _build_prompt(
     return (
         "You are an expert assistant on CIS Critical Security Controls v8.\n\n"
         "Answer the question using ONLY the context provided below. Do not use outside knowledge.\n\n"
-        "Formatting rules — follow these exactly:\n"
-        "- Use **bold** for all CIS Control names, security terms, and key concepts.\n"
-        "- Whenever listing multiple items, safeguards, steps, or requirements, use a bulleted list (- item) or numbered list (1. item). Never write them as a single run-on sentence.\n"
-        "- Write in clear paragraphs. Use a new line between paragraphs.\n\n"
-        "Citation rules — follow these exactly:\n"
-        "- End every sentence that draws from the context with its source number in brackets: [1], [2], etc.\n"
-        "- Use only the numbers available in the context (1 through " + str(len(top_chunks)) + ").\n"
-        "- Do not skip numbers — if you use [1] and [3], also use [2] somewhere or don't use [3].\n"
-        "- Do not repeat the same citation number more than twice in a row.\n"
-        "Example: \"**Assets** must be inventoried regularly [1]. **Software licenses** should also be tracked [2].\"\n\n"
+        "Formatting rules:\n"
+        "- Use **bold** for CIS Control names, security terms, and key concepts.\n"
+        "- Use a bulleted list (- item) or numbered list whenever you mention multiple items, safeguards, or steps.\n\n"
+        "Citation rules:\n"
+        "- Place the source number in brackets immediately after the sentence that uses it: [1], [2], or [3].\n"
+        "- Only use numbers 1 to " + str(len(top_chunks)) + " — do not invent other numbers.\n"
+        "- Do NOT add a References, Sources, or bibliography section at the end. Citations must be inline only.\n\n"
+        "Example of correct output:\n"
+        "**Audit Log Management** requires collecting logs from all enterprise assets [1]. "
+        "Logs must be retained to prevent tampering [2].\n\n"
         f"{history_section}"
         f"Context:\n{context}\n\n"
         f"Question: {query}\n\n"
@@ -308,6 +318,7 @@ def stream_knowledge_agent(
         if data.get("done"):
             break
 
+    full_response = _strip_references_section(full_response)
     raw_sources = _build_sources_payload(top_chunks)
     full_response, sources = _normalize_citations(full_response, raw_sources)
 

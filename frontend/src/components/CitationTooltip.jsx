@@ -5,6 +5,8 @@ export default function CitationTooltip({ id, source }) {
   const { theme } = useTheme()
   const [visible, setVisible] = useState(false)
 
+  if (!source) return null
+
   return (
     <span style={{ position: 'relative', display: 'inline-block' }}>
       <span
