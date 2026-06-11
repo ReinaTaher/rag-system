@@ -9,7 +9,7 @@ function preprocessCitations(text) {
   return text.replace(/\[(\d+)\]/g, (_, n) => `[[${n}]](#cite-${n})`)
 }
 
-export default function ChatWindow({ messages, loading, streaming, onRegenerate, onSwitchVersion, onFeedback, messageFeedback, isMobile, compareMode, onCompare, onDismissCompare, onKeepCompare }) {
+export default function ChatWindow({ messages, loading, streaming, onRegenerate, onSwitchVersion, onFeedback, messageFeedback, isMobile, compareMode, onCompare, onDismissCompare, onPickVersion }) {
   const { theme } = useTheme()
   const bottomRef = useRef(null)
 
@@ -41,8 +41,11 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
 
           const isComparing = !isUser && compareMode?.msgIndex === i
 
-          // ── Compare split view ───────────────────────────────────────────
+          // ── Compare split view (V1 vs V2, both already saved) ───────────
           if (isComparing) {
+            const v1 = msg.versions?.find(v => v.version_num === 1)
+            const v2Content = msg.content
+            const v2Sources = msg.sources
             const bubbleBase = {
               flex: 1,
               minWidth: 0,
@@ -56,113 +59,76 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
             }
             return (
               <div key={i} style={{ width: '100%' }}>
-                {/* Version labels */}
+                {/* Labels */}
                 <div style={{
                   display: 'flex',
                   gap: '12px',
                   marginBottom: '6px',
                   flexDirection: isMobile ? 'column' : 'row',
                 }}>
-                  <div style={{ flex: 1, fontSize: '11px', fontWeight: '600', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Version A · Current
-                  </div>
-                  <div style={{ flex: 1, fontSize: '11px', fontWeight: '600', color: compareMode.streaming ? theme.btnPrimary : theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Version B · {compareMode.streaming ? 'Generating…' : 'New'}
-                  </div>
+                  {['Version 1 · Original', 'Version 2 · Regenerated'].map(label => (
+                    <div key={label} style={{ flex: 1, fontSize: '11px', fontWeight: '600', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {label}
+                    </div>
+                  ))}
                 </div>
 
                 {/* Side-by-side panels */}
-                <div style={{
-                  display: 'flex',
-                  gap: '12px',
-                  flexDirection: isMobile ? 'column' : 'row',
-                  alignItems: 'flex-start',
-                }}>
-                  {/* Version A */}
+                <div style={{ display: 'flex', gap: '12px', flexDirection: isMobile ? 'column' : 'row', alignItems: 'flex-start' }}>
+                  {/* V1 */}
                   <div style={bubbleBase}>
                     <div className="markdown-body">
-                      <ReactMarkdown
-                        components={{
-                          a({ href, children }) {
-                            if (href?.startsWith('#cite-')) {
-                              const id = parseInt(href.slice(6), 10)
-                              const source = displayedSources?.find(s => s.id === id) || null
-                              return <CitationTooltip id={id} source={source} isMobile={isMobile} />
-                            }
-                            return <a href={href} target="_blank" rel="noreferrer">{children}</a>
-                          },
-                        }}
-                      >
-                        {preprocessCitations(displayedContent)}
+                      <ReactMarkdown components={{ a({ href, children }) {
+                        if (href?.startsWith('#cite-')) {
+                          const id = parseInt(href.slice(6), 10)
+                          return <CitationTooltip id={id} source={v1?.sources?.find(s => s.id === id) || null} isMobile={isMobile} />
+                        }
+                        return <a href={href} target="_blank" rel="noreferrer">{children}</a>
+                      }}}>
+                        {preprocessCitations(v1?.content || '')}
                       </ReactMarkdown>
                     </div>
-                    <SourcesPanel sources={displayedSources} />
+                    <SourcesPanel sources={v1?.sources} />
                   </div>
 
-                  {/* Version B */}
-                  <div style={{ ...bubbleBase, borderColor: compareMode.streaming ? theme.btnPrimary : theme.assistantBubbleBorder }}>
+                  {/* V2 */}
+                  <div style={bubbleBase}>
                     <div className="markdown-body">
-                      <ReactMarkdown
-                        components={{
-                          a({ href, children }) {
-                            if (href?.startsWith('#cite-')) {
-                              const id = parseInt(href.slice(6), 10)
-                              const source = compareMode.sources?.find(s => s.id === id) || null
-                              return <CitationTooltip id={id} source={source} isMobile={isMobile} />
-                            }
-                            return <a href={href} target="_blank" rel="noreferrer">{children}</a>
-                          },
-                        }}
-                      >
-                        {preprocessCitations(compareMode.content || ' ')}
+                      <ReactMarkdown components={{ a({ href, children }) {
+                        if (href?.startsWith('#cite-')) {
+                          const id = parseInt(href.slice(6), 10)
+                          return <CitationTooltip id={id} source={v2Sources?.find(s => s.id === id) || null} isMobile={isMobile} />
+                        }
+                        return <a href={href} target="_blank" rel="noreferrer">{children}</a>
+                      }}}>
+                        {preprocessCitations(v2Content)}
                       </ReactMarkdown>
-                      {compareMode.streaming && (
-                        <span style={{ color: theme.btnPrimary, marginLeft: '1px' }}>▌</span>
-                      )}
                     </div>
-                    {!compareMode.streaming && <SourcesPanel sources={compareMode.sources} />}
+                    <SourcesPanel sources={v2Sources} />
                   </div>
                 </div>
 
-                {/* Action buttons */}
-                {!compareMode.streaming && (
-                  <div style={{
-                    display: 'flex',
-                    gap: '8px',
-                    marginTop: '10px',
-                    justifyContent: 'center',
-                  }}>
-                    <button
-                      onClick={onKeepCompare}
-                      style={{
-                        padding: '7px 18px',
-                        backgroundColor: theme.btnPrimary,
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Use Version B
-                    </button>
-                    <button
-                      onClick={onDismissCompare}
-                      style={{
-                        padding: '7px 18px',
-                        backgroundColor: 'transparent',
-                        color: theme.textMuted,
-                        border: `1px solid ${theme.inputBorder}`,
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Keep Version A
-                    </button>
-                  </div>
-                )}
+                {/* Pick buttons */}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '10px', justifyContent: 'center' }}>
+                  <button
+                    onClick={() => onPickVersion(i, 1)}
+                    style={{ padding: '7px 18px', backgroundColor: 'transparent', color: theme.textMuted, border: `1px solid ${theme.inputBorder}`, borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}
+                  >
+                    Use Version 1
+                  </button>
+                  <button
+                    onClick={() => onPickVersion(i, 2)}
+                    style={{ padding: '7px 18px', backgroundColor: theme.btnPrimary, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
+                  >
+                    Use Version 2
+                  </button>
+                  <button
+                    onClick={onDismissCompare}
+                    style={{ padding: '7px 14px', backgroundColor: 'transparent', color: theme.textFaint, border: 'none', fontSize: '13px', cursor: 'pointer' }}
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
             )
           }
@@ -241,26 +207,28 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
                           ↺ Regenerate
                         </button>
 
-                        <button
-                          onClick={() => onCompare(i)}
-                          disabled={streaming || loading || compareMode !== null}
-                          title="Compare with an alternative generation"
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: streaming || loading || compareMode ? 'not-allowed' : 'pointer',
-                            color: theme.textFaint,
-                            fontSize: '13px',
-                            padding: '2px 4px',
-                            borderRadius: '4px',
-                            opacity: streaming || loading || compareMode ? 0.4 : 1,
-                            transition: 'color 0.15s',
-                          }}
-                          onMouseEnter={e => { if (!streaming && !loading && !compareMode) e.currentTarget.style.color = theme.btnPrimary }}
-                          onMouseLeave={e => { e.currentTarget.style.color = theme.textFaint }}
-                        >
-                          ⇌ Compare
-                        </button>
+                        {(msg.version_count ?? 1) === 2 && (
+                          <button
+                            onClick={() => onCompare(i)}
+                            disabled={streaming || loading}
+                            title="Compare Version 1 vs Version 2"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: streaming || loading ? 'not-allowed' : 'pointer',
+                              color: theme.textFaint,
+                              fontSize: '13px',
+                              padding: '2px 4px',
+                              borderRadius: '4px',
+                              opacity: streaming || loading ? 0.4 : 1,
+                              transition: 'color 0.15s',
+                            }}
+                            onMouseEnter={e => { if (!streaming && !loading) e.currentTarget.style.color = theme.btnPrimary }}
+                            onMouseLeave={e => { e.currentTarget.style.color = theme.textFaint }}
+                          >
+                            ⇌ Compare
+                          </button>
+                        )}
 
                         {(msg.version_count ?? 1) > 1 && (
                           <div style={{

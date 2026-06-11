@@ -24,7 +24,7 @@ export default function App() {
   const [tourRunning, setTourRunning] = useState(false)
   const [messageFeedback, setMessageFeedback] = useState({})
   const [compareMode, setCompareMode] = useState(null)
-  // compareMode shape: { msgIndex, content, sources, streaming }
+  // compareMode shape: { msgIndex } — only set when version_count === 2
 
   useEffect(() => {
     if (windowWidth >= 640) setSidebarOpen(true)
@@ -317,74 +317,35 @@ export default function App() {
 
   async function startComparison(msgIndex) {
     const msg = messages[msgIndex]
-    if (!msg.id || streaming || loading || compareMode) return
+    if (!msg.id || (msg.version_count ?? 1) !== 2) return
 
-    let userQuery = ''
-    let historyUpToMsg = []
-    for (let i = msgIndex - 1; i >= 0; i--) {
-      if (messages[i].role === 'user') {
-        userQuery = messages[i].content
-        historyUpToMsg = messages.slice(0, i).map(m => ({ role: m.role, content: m.content })).slice(-6)
-        break
+    // Load versions from DB if not already cached in state
+    if (!msg.versions) {
+      try {
+        const res = await fetch(`${API}/messages/${msg.id}/versions`)
+        const data = await res.json()
+        setMessages(prev => {
+          const updated = [...prev]
+          updated[msgIndex] = { ...updated[msgIndex], versions: data }
+          return updated
+        })
+      } catch {
+        console.error('Failed to load versions for compare')
+        return
       }
     }
-    if (!userQuery) return
 
-    setCompareMode({ msgIndex, content: '', sources: null, streaming: true })
-
-    try {
-      const res = await fetch(`${API}/threads/${activeThreadId}/messages/${msg.id}/compare`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userQuery, history: historyUpToMsg }),
-      })
-
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const lines = decoder.decode(value).split('\n')
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const data = line.slice(6)
-          if (data === '[DONE]') break
-
-          try {
-            const parsed = JSON.parse(data)
-            if (parsed.replace !== undefined) {
-              setCompareMode(prev => prev ? { ...prev, content: parsed.replace } : null)
-            } else if (parsed.sources) {
-              setCompareMode(prev => prev ? { ...prev, sources: parsed.sources } : null)
-            } else if (parsed.token !== undefined) {
-              setCompareMode(prev => prev ? { ...prev, content: prev.content + parsed.token } : null)
-            }
-          } catch { /* skip */ }
-        }
-      }
-    } catch {
-      console.error('Comparison failed')
-      setCompareMode(null)
-    } finally {
-      setCompareMode(prev => prev ? { ...prev, streaming: false } : null)
-    }
+    setCompareMode({ msgIndex })
   }
 
   function dismissComparison() {
     setCompareMode(null)
   }
 
-  function keepComparison() {
-    if (!compareMode) return
+  function pickCompareVersion(msgIndex, versionNum) {
     setMessages(prev => {
       const updated = [...prev]
-      updated[compareMode.msgIndex] = {
-        ...updated[compareMode.msgIndex],
-        content: compareMode.content,
-        sources: compareMode.sources,
-      }
+      updated[msgIndex] = { ...updated[msgIndex], displayedVersion: versionNum }
       return updated
     })
     setCompareMode(null)
@@ -584,7 +545,7 @@ export default function App() {
                   compareMode={compareMode}
                   onCompare={startComparison}
                   onDismissCompare={dismissComparison}
-                  onKeepCompare={keepComparison}
+                  onPickVersion={pickCompareVersion}
                 />
               </div>
               <ChatInput onSend={sendMessage} disabled={loading || streaming} />
