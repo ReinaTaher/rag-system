@@ -45,7 +45,7 @@ const tourStyles = {
     border: '1px solid #2a2a2a',
   },
   tooltipTitle: {
-    color: '#fafafa',
+    color: '#1a1a1a',
     fontSize: '14px',
     fontWeight: '600',
   },
