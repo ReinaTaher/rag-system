@@ -145,6 +145,13 @@ export default function App() {
                 updated[updated.length - 1] = { ...last, id: parsed.message_id, version_count: parsed.version_count ?? 1, displayedVersion: parsed.version_count ?? 1 }
                 return updated
               })
+            } else if (parsed.replace !== undefined) {
+              setMessages(prev => {
+                const updated = [...prev]
+                const last = updated[updated.length - 1]
+                updated[updated.length - 1] = { ...last, content: parsed.replace }
+                return updated
+              })
             } else if (parsed.sources) {
               setMessages(prev => {
                 const updated = [...prev]
@@ -230,6 +237,12 @@ export default function App() {
               setMessages(prev => {
                 const updated = [...prev]
                 updated[msgIndex] = { ...updated[msgIndex], version_count: parsed.version_count, displayedVersion: parsed.version_count }
+                return updated
+              })
+            } else if (parsed.replace !== undefined) {
+              setMessages(prev => {
+                const updated = [...prev]
+                updated[msgIndex] = { ...updated[msgIndex], content: parsed.replace }
                 return updated
               })
             } else if (parsed.sources) {

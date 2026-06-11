@@ -12,7 +12,7 @@ OLLAMA_MODEL = "llama3.2:3b"
 # How many candidates to pull from Weaviate before reranking
 RETRIEVE_K = 20
 # How many reranked chunks to send to the LLM
-RERANK_TOP_K = 3
+RERANK_TOP_K = 5
 
 # Ingestion settings (used by chunking.py — ~300 tokens per chunk)
 CHUNK_SIZE = 1200

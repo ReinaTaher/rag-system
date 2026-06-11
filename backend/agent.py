@@ -315,17 +315,15 @@ def stream_knowledge_agent(
         token = data.get("response", "")
         if token:
             full_response += token
+            yield f"data: {json.dumps({'token': token})}\n\n"
         if data.get("done"):
             break
 
+    # Post-process after streaming completes — send corrected version
     full_response = _strip_references_section(full_response)
     raw_sources = _build_sources_payload(top_chunks)
     full_response, sources = _normalize_citations(full_response, raw_sources)
 
-    # Re-stream the corrected response preserving all whitespace
-    for chunk in re.split(r'(\s+)', full_response):
-        if chunk:
-            yield f"data: {json.dumps({'token': chunk})}\n\n"
-
+    yield f"data: {json.dumps({'replace': full_response})}\n\n"
     yield f"data: {json.dumps({'sources': sources})}\n\n"
     yield "data: [DONE]\n\n"
