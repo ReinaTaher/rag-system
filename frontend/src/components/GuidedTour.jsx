@@ -93,13 +93,13 @@ export default function GuidedTour({ run, onFinish, isMobile }) {
       paddingBottom: '8px',
     },
     buttonPrimary: {
-      backgroundColor: '#1d4ed8',
-      color: '#ffffff',
-      borderRadius: '7px',
-      fontSize: '13px',
-      fontWeight: '500',
-      padding: '7px 16px',
+      backgroundColor: 'transparent',
+      color: '#1d4ed8',
+      border: 'none',
+      fontSize: '18px',
+      padding: '4px 8px',
       outline: 'none',
+      cursor: 'pointer',
     },
     buttonBack: {
       color: txtSub,
@@ -133,9 +133,9 @@ export default function GuidedTour({ run, onFinish, isMobile }) {
       locale={{
         back: 'Back',
         close: 'Close',
-        last: 'Done',
-        next: 'Next',
-        skip: 'Skip tour',
+        last: '→',
+        next: '→',
+        skip: 'Skip',
       }}
       callback={handleCallback}
     />
