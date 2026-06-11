@@ -370,47 +370,55 @@ export default function App() {
     doc.line(margin, y, pageW - margin, y)
     y += 8
 
+    // Set the body font once so splitTextToSize always measures at the right size
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    const lineH = (doc.getFontSize() * doc.getLineHeightFactor()) / doc.internal.scaleFactor
+    const pad = 6  // mm padding inside bubble on each side
+
     for (const msg of messages) {
       const isUser = msg.role === 'user'
       const clean = stripMd(msg.content)
-      const lines = doc.splitTextToSize(clean, isUser ? maxW * 0.72 : maxW)
-      const blockH = lines.length * 5.2 + 14
-      checkPage(blockH)
 
       if (isUser) {
-        // Right-aligned blue bubble
-        const bubbleW = Math.min(maxW * 0.72, doc.getTextWidth(clean) + 10)
-        const bubbleX = pageW - margin - bubbleW
-        doc.setFillColor(29, 78, 216)
-        doc.roundedRect(bubbleX, y - 1, bubbleW, blockH - 6, 3, 3, 'F')
+        // Font must match splitTextToSize
         doc.setFontSize(10)
         doc.setFont('helvetica', 'normal')
+        const bubbleW = Math.min(maxW * 0.75, pageW * 0.75)
+        const bubbleX = pageW - margin - bubbleW
+        const wrapped = doc.splitTextToSize(clean, bubbleW - pad * 2)
+        const bH = wrapped.length * lineH + pad * 2
+        checkPage(bH + 8)
+        doc.setFillColor(29, 78, 216)
+        doc.roundedRect(bubbleX, y, bubbleW, bH, 3, 3, 'F')
         doc.setTextColor(255, 255, 255)
-        const wrapped = doc.splitTextToSize(clean, bubbleW - 8)
-        doc.text(wrapped, bubbleX + 4, y + 5)
-        y += wrapped.length * 5.2 + 10
+        doc.text(wrapped, bubbleX + pad, y + pad + lineH * 0.8)
+        y += bH + 8
       } else {
-        // Role label
+        // Label — different font, rendered BEFORE resetting to body font
         doc.setFontSize(8)
         doc.setFont('helvetica', 'bold')
         doc.setTextColor(113, 113, 122)
+        checkPage(8)
         doc.text('ASSISTANT', margin, y + 3)
-        y += 7
-        // Light gray bubble
-        const wrappedLines = doc.splitTextToSize(clean, maxW - 8)
-        const bH = wrappedLines.length * 5.2 + 8
+        y += 6
+
+        // Reset to body font BEFORE measuring
+        doc.setFontSize(10)
+        doc.setFont('helvetica', 'normal')
+        const wrapped = doc.splitTextToSize(clean, maxW - pad * 2)
+        const bH = wrapped.length * lineH + pad * 2
+        checkPage(bH + 8)
         doc.setFillColor(244, 244, 245)
         doc.setDrawColor(228, 228, 231)
         doc.setLineWidth(0.2)
-        doc.roundedRect(margin, y - 1, maxW, bH, 3, 3, 'FD')
-        doc.setFontSize(10)
-        doc.setFont('helvetica', 'normal')
+        doc.roundedRect(margin, y, maxW, bH, 3, 3, 'FD')
         doc.setTextColor(24, 24, 27)
-        doc.text(wrappedLines, margin + 4, y + 5)
-        y += bH + 6
+        doc.text(wrapped, margin + pad, y + pad + lineH * 0.8)
+        y += bH + 8
       }
 
-      checkPage(4)
+      checkPage(6)
       doc.setDrawColor(228, 228, 231)
       doc.setLineWidth(0.2)
       doc.line(margin, y, pageW - margin, y)
