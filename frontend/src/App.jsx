@@ -4,6 +4,7 @@ import ChatWindow from './components/ChatWindow'
 import ChatInput from './components/ChatInput'
 import Sidebar from './components/Sidebar'
 import GuidedTour from './components/GuidedTour'
+import EmptyState from './components/EmptyState'
 import { useTheme } from './context/ThemeContext'
 import { useWindowSize } from './hooks/useWindowSize'
 
@@ -60,8 +61,10 @@ export default function App() {
       setThreads(prev => [thread, ...prev])
       setActiveThreadId(thread.id)
       setMessages([{ role: 'assistant', content: 'Hi! Ask me anything about CIS Security Controls.', id: null, sources: null, version_count: 1, displayedVersion: 1, versions: null }])
+      return thread.id
     } catch {
       console.error('Failed to create thread')
+      return null
     }
   }
 
@@ -104,8 +107,9 @@ export default function App() {
     }
   }
 
-  async function sendMessage(text) {
-    if (!activeThreadId) return
+  async function sendMessage(text, threadIdOverride = null) {
+    const targetThreadId = threadIdOverride || activeThreadId
+    if (!targetThreadId) return
 
     const history = messages
       .filter(m => m.role !== 'assistant' || messages.indexOf(m) !== 0)
@@ -116,7 +120,7 @@ export default function App() {
     setLoading(true)
 
     try {
-      const res = await fetch(`${API}/threads/${activeThreadId}/chat/stream`, {
+      const res = await fetch(`${API}/threads/${targetThreadId}/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, history }),
@@ -308,6 +312,30 @@ export default function App() {
     }
   }
 
+  function exportMarkdown() {
+    if (!activeThreadId || messages.length === 0) return
+    const activeThread = threads.find(t => t.id === activeThreadId)
+    const title = activeThread?.title || 'Chat'
+    const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    const lines = [`# ${title}`, `*Exported: ${date}*`, '', '---', '']
+    for (const msg of messages) {
+      if (msg.role === 'user') {
+        lines.push(`**You:** ${msg.content}`, '')
+      } else {
+        lines.push(`**Assistant:** ${msg.content}`, '', '---', '')
+      }
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${title.replace(/\s+/g, '-').toLowerCase()}.md`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <>
     <GuidedTour run={tourRunning} onFinish={handleTourFinish} isMobile={isMobile} />
@@ -355,7 +383,12 @@ export default function App() {
         />
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <Header isMobile={isMobile} onToggleSidebar={() => setSidebarOpen(v => !v)} />
+          <Header
+            isMobile={isMobile}
+            onToggleSidebar={() => setSidebarOpen(v => !v)}
+            hasActiveThread={!!activeThreadId}
+            onExport={exportMarkdown}
+          />
 
           {activeThreadId ? (
             <>
@@ -374,32 +407,7 @@ export default function App() {
               <ChatInput onSend={sendMessage} disabled={loading || streaming} />
             </>
           ) : (
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '14px',
-              color: theme.textFaint,
-            }}>
-              <p style={{ fontSize: '15px' }}>Select a conversation or start a new one</p>
-              <button
-                onClick={createThread}
-                style={{
-                  padding: '10px 22px',
-                  backgroundColor: theme.btnPrimary,
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                }}
-              >
-                New Chat
-              </button>
-            </div>
+            <EmptyState onNewChat={createThread} onSend={sendMessage} />
           )}
         </div>
       </div>

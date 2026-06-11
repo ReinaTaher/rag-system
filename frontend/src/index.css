@@ -213,3 +213,17 @@ button[data-action="close"] {
 /* ── Input placeholder ── */
 input::placeholder { color: #52525b; }
 [data-theme="light"] input::placeholder { color: #a1a1aa; }
+
+/* ── Floating suggestion chip animations ── */
+@keyframes float-a {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+@keyframes float-b {
+  0%, 100% { transform: translateY(-3px); }
+  50%       { transform: translateY(3px); }
+}
+@keyframes float-c {
+  0%, 100% { transform: translateY(-2px); }
+  50%       { transform: translateY(4px); }
+}

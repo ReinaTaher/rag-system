@@ -1,7 +1,7 @@
-import { Sun, Moon, Menu } from 'lucide-react'
+import { Sun, Moon, Menu, Download } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
-export default function Header({ isMobile, onToggleSidebar }) {
+export default function Header({ isMobile, onToggleSidebar, hasActiveThread, onExport }) {
   const { theme, isDark, toggle } = useTheme()
 
   return (
@@ -47,17 +47,39 @@ export default function Header({ isMobile, onToggleSidebar }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{
-          fontSize: '12px',
-          color: theme.badgeText,
-          backgroundColor: theme.badge,
-          padding: '3px 10px',
-          borderRadius: '99px',
-          border: `1px solid ${theme.badgeBorder}`,
-          letterSpacing: '0.02em',
-        }}>
-          CIS Controls v8
-        </span>
+        {!isMobile && (
+          <span style={{
+            fontSize: '12px',
+            color: theme.badgeText,
+            backgroundColor: theme.badge,
+            padding: '3px 10px',
+            borderRadius: '99px',
+            border: `1px solid ${theme.badgeBorder}`,
+            letterSpacing: '0.02em',
+          }}>
+            CIS Controls v8
+          </span>
+        )}
+
+        {hasActiveThread && (
+          <button
+            onClick={onExport}
+            title="Export conversation as Markdown"
+            style={{
+              background: theme.badge,
+              border: `1px solid ${theme.badgeBorder}`,
+              borderRadius: '99px',
+              padding: '4px 10px',
+              cursor: 'pointer',
+              lineHeight: 1,
+              color: theme.textMuted,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <Download size={14} />
+          </button>
+        )}
 
         <button
           onClick={toggle}
