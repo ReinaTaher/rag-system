@@ -38,33 +38,40 @@ const STEPS_MOBILE = [
     placement: 'center',
     disableBeacon: true,
     title: 'Welcome to the RAG Security Assistant',
-    content: 'Chat with an AI trained on CIS Security Controls v8. Let\'s take a quick look around.',
+    content: 'Chat with an AI trained on CIS Security Controls v8.',
   },
   {
-    target: '#tour-chat-input',
-    placement: 'top',
+    target: 'body',
+    placement: 'center',
     disableBeacon: true,
-    title: 'Ask Your Question',
-    content: 'Type any question here and press Enter. Tap the menu icon in the top-left to access your conversation history.',
+    title: 'Access Your Chats',
+    content: 'Tap the menu icon (≡) in the top-left to open the sidebar, start a new conversation, or switch between past chats.',
+  },
+  {
+    target: 'body',
+    placement: 'center',
+    disableBeacon: true,
+    title: 'Ask Away',
+    content: 'Start a new chat, then type any question about CIS Security Controls and press Send. Answers stream back in real-time.',
   },
 ]
 
 export default function GuidedTour({ run, onFinish, isMobile }) {
   const { isDark } = useTheme()
 
-  const bg      = isDark ? '#27272a' : '#ffffff'
-  const txtMain = isDark ? '#e4e4e7' : '#18181b'
-  const txtSub  = isDark ? '#71717a' : '#71717a'
+  const bg      = '#ffffff'
+  const txtTitle = '#1a1a1a'
+  const txtSub  = '#52525b'
   const overlay = isDark ? 'rgba(0,0,0,0.32)' : 'rgba(0,0,0,0.14)'
-  const border  = isDark ? '#3f3f46'  : '#e4e4e7'
-  const shadow  = isDark ? '0 8px 32px rgba(0,0,0,0.45)' : '0 8px 24px rgba(0,0,0,0.1)'
+  const border  = '#e4e4e7'
+  const shadow  = '0 8px 24px rgba(0,0,0,0.12)'
 
   const tourStyles = {
     options: {
       primaryColor: '#1d4ed8',
       backgroundColor: bg,
       arrowColor: bg,
-      textColor: txtMain,
+      textColor: txtTitle,
       overlayColor: overlay,
       zIndex: 9999,
     },
@@ -76,7 +83,7 @@ export default function GuidedTour({ run, onFinish, isMobile }) {
     tooltipTitle: {
       fontSize: '14px',
       fontWeight: '600',
-      color: txtMain,
+      color: txtTitle,
       margin: 0,
     },
     tooltipContent: {
