@@ -65,7 +65,7 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
                             if (href?.startsWith('#cite-')) {
                               const id = parseInt(href.slice(6), 10)
                               const source = displayedSources?.find(s => s.id === id) || null
-                              return <CitationTooltip id={id} source={source} />
+                              return <CitationTooltip id={id} source={source} isMobile={isMobile} />
                             }
                             return <a href={href} target="_blank" rel="noreferrer">{children}</a>
                           },
