@@ -75,7 +75,7 @@ export default function App() {
     try {
       const res = await fetch(`${API}/threads/${threadId}/messages`)
       const data = await res.json()
-      const loaded = data.map(m => ({ role: m.role, content: m.content }))
+      const loaded = data.map(m => ({ role: m.role, content: m.content, sources: m.sources || null }))
       setMessages(
         loaded.length > 0
           ? loaded
@@ -118,19 +118,29 @@ export default function App() {
           if (data === '[DONE]') break
 
           try {
-            const { token } = JSON.parse(data)
-            if (firstToken) {
-              firstToken = false
-              setLoading(false)
-              setStreaming(true)
-              setMessages(prev => [...prev, { role: 'assistant', content: token }])
-            } else {
+            const parsed = JSON.parse(data)
+            if (parsed.sources) {
               setMessages(prev => {
                 const updated = [...prev]
                 const last = updated[updated.length - 1]
-                updated[updated.length - 1] = { ...last, content: last.content + token }
+                updated[updated.length - 1] = { ...last, sources: parsed.sources }
                 return updated
               })
+            } else if (parsed.token !== undefined) {
+              const { token } = parsed
+              if (firstToken) {
+                firstToken = false
+                setLoading(false)
+                setStreaming(true)
+                setMessages(prev => [...prev, { role: 'assistant', content: token, sources: null }])
+              } else {
+                setMessages(prev => {
+                  const updated = [...prev]
+                  const last = updated[updated.length - 1]
+                  updated[updated.length - 1] = { ...last, content: last.content + token }
+                  return updated
+                })
+              }
             }
           } catch { /* malformed line, skip */ }
         }

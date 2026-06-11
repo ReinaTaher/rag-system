@@ -1,6 +1,13 @@
 import { useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useTheme } from '../context/ThemeContext'
+import CitationTooltip from './CitationTooltip'
+import SourcesPanel from './SourcesPanel'
+
+// Convert [1] [2] etc. in text to markdown links so ReactMarkdown can intercept them
+function preprocessCitations(text) {
+  return text.replace(/\[(\d+)\]/g, (_, n) => `[[${n}]](#cite-${n})`)
+}
 
 export default function ChatWindow({ messages, loading, streaming }) {
   const { theme } = useTheme()
@@ -40,12 +47,29 @@ export default function ChatWindow({ messages, loading, streaming }) {
                 {isUser ? (
                   <span>{msg.content}</span>
                 ) : (
-                  <div className="markdown-body">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    {streaming && isLastAssistant && (
-                      <span style={{ color: theme.textFaint, marginLeft: '1px' }}>▌</span>
-                    )}
-                  </div>
+                  <>
+                    <div className="markdown-body">
+                      <ReactMarkdown
+                        components={{
+                          a({ href, children }) {
+                            // Intercept citation links like #cite-1
+                            if (href?.startsWith('#cite-')) {
+                              const id = parseInt(href.slice(6), 10)
+                              const source = msg.sources?.find(s => s.id === id) || null
+                              return <CitationTooltip id={id} source={source} />
+                            }
+                            return <a href={href} target="_blank" rel="noreferrer">{children}</a>
+                          },
+                        }}
+                      >
+                        {preprocessCitations(msg.content)}
+                      </ReactMarkdown>
+                      {streaming && isLastAssistant && (
+                        <span style={{ color: theme.textFaint, marginLeft: '1px' }}>▌</span>
+                      )}
+                    </div>
+                    {!streaming && <SourcesPanel sources={msg.sources} />}
+                  </>
                 )}
               </div>
             </div>

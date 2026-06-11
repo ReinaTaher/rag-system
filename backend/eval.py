@@ -41,7 +41,7 @@ def build_test_cases(goldens: list[dict]) -> list[LLMTestCase]:
         chunks = retrieve(query, k=RETRIEVE_K)
         top_chunks = rerank(query, chunks, top_k=RERANK_TOP_K)
         actual_output = generate_answer(query, top_chunks)
-        retrieval_context = [chunk for chunk, _ in top_chunks]
+        retrieval_context = [chunk["text"] for chunk, _ in top_chunks]
 
         test_cases.append(
             LLMTestCase(

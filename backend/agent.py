@@ -153,7 +153,7 @@ def _stream_free_chat(query: str, history: list[dict] | None = None) -> Generato
 
 def generate_answer(
     query: str,
-    top_chunks: list[tuple[str, float]],
+    top_chunks: list[tuple[dict, float]],
     history: list[dict] | None = None,
 ) -> str:
     """Build a prompt from reranked context and conversation history, then call Ollama."""
@@ -185,20 +185,42 @@ def knowledge_agent(query: str, history: list[dict] | None = None) -> str:
     return generate_answer(query, top_chunks, history)
 
 
+def _build_sources_payload(top_chunks: list[tuple[dict, float]]) -> list[dict]:
+    """Build the sources list to send to the frontend."""
+    return [
+        {
+            "id": i,
+            "text": chunk["text"][:300] + ("…" if len(chunk["text"]) > 300 else ""),
+            "source": chunk["source"],
+            "chunk_id": chunk["chunk_id"],
+        }
+        for i, (chunk, _) in enumerate(top_chunks, start=1)
+    ]
+
+
 def _build_prompt(
     query: str,
-    top_chunks: list[tuple[str, float]],
+    top_chunks: list[tuple[dict, float]],
     history: list[dict] | None = None,
 ) -> str:
     """Shared prompt builder used by both streaming and non-streaming paths."""
-    context = "\n\n---\n\n".join([chunk for chunk, _ in top_chunks])
+    context_parts = []
+    for i, (chunk, _) in enumerate(top_chunks, start=1):
+        context_parts.append(f"[{i}] {chunk['text']}")
+    context = "\n\n".join(context_parts)
+
     history_section = ""
     if history:
         history_section = f"Previous conversation:\n{_format_history(history)}\n\n"
     return (
         "You are an expert assistant on CIS Critical Security Controls v8.\n\n"
+        "You MUST cite sources inline. Every sentence that uses information from the context "
+        "must end with the citation number in brackets, like this: [1] or [2].\n"
+        "Example of correct citation usage: \"Assets must be inventoried regularly [1]. "
+        "Software licenses should also be tracked [2].\"\n\n"
         "Answer the question using ONLY the context provided below. Do not use outside knowledge.\n\n"
         "Rules:\n"
+        "- Add [1], [2], etc. after EVERY sentence that draws from the context. Do not skip citations.\n"
         "- Cite specific CIS Control numbers and names when they appear in the context.\n"
         "- If the question asks for a list, respond with a clear numbered or bulleted list.\n"
         "- If the question asks what a control is or what it covers, give a complete summary: its purpose, why it is critical, and its key safeguards.\n"
@@ -207,7 +229,7 @@ def _build_prompt(
         f"{history_section}"
         f"Context:\n{context}\n\n"
         f"Question: {query}\n\n"
-        "Answer:"
+        "Answer (remember to add [1], [2], etc. after each sentence):"
     )
 
 
@@ -250,5 +272,7 @@ def stream_knowledge_agent(
         if token:
             yield f"data: {json.dumps({'token': token})}\n\n"
         if data.get("done"):
+            sources = _build_sources_payload(top_chunks)
+            yield f"data: {json.dumps({'sources': sources})}\n\n"
             yield "data: [DONE]\n\n"
             break

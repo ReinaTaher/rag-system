@@ -78,7 +78,12 @@ async def get_thread_messages(thread_id: str):
     if not ObjectId.is_valid(thread_id):
         raise HTTPException(status_code=400, detail="Invalid thread ID")
     cursor = messages_collection.find({"thread_id": thread_id}).sort("created_at", 1)
-    messages = [_serialize(doc) async for doc in cursor]
+    messages = []
+    async for doc in cursor:
+        msg = _serialize(doc)
+        if "sources" not in msg:
+            msg["sources"] = None
+        messages.append(msg)
     return messages
 
 
@@ -131,6 +136,7 @@ async def thread_chat_stream(thread_id: str, request: ChatRequest):
         threading.Thread(target=run_sync, daemon=True).start()
 
         full_response = ""
+        sources_data = None
         while True:
             chunk = await queue.get()
             if chunk is None:
@@ -138,15 +144,20 @@ async def thread_chat_stream(thread_id: str, request: ChatRequest):
             yield chunk
             if chunk.startswith("data: ") and "[DONE]" not in chunk:
                 try:
-                    full_response += json.loads(chunk[6:]).get("token", "")
+                    parsed = json.loads(chunk[6:])
+                    if "token" in parsed:
+                        full_response += parsed["token"]
+                    elif "sources" in parsed:
+                        sources_data = parsed["sources"]
                 except Exception:
                     pass
 
-        # Save assistant response after stream ends
+        # Save assistant response with sources after stream ends
         await messages_collection.insert_one({
             "thread_id": thread_id,
             "role": "assistant",
             "content": full_response,
+            "sources": sources_data,
             "created_at": _now(),
         })
 

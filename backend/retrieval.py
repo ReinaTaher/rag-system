@@ -18,10 +18,10 @@ _collection = _client.collections.get(COLLECTION_NAME)
 atexit.register(_client.close)
 
 
-def retrieve(query: str, k: int = RETRIEVE_K) -> list[str]:
+def retrieve(query: str, k: int = RETRIEVE_K) -> list[dict]:
     """
     Embed the query and return the top-k most similar chunks from Weaviate,
-    ranked by cosine similarity (native ANN search — no custom re-scoring).
+    each as a dict with keys: text, source, chunk_id.
     """
     query_vector = embed_query(query)
 
@@ -30,4 +30,11 @@ def retrieve(query: str, k: int = RETRIEVE_K) -> list[str]:
         limit=k,
     )
 
-    return [obj.properties["text"] for obj in results.objects]
+    return [
+        {
+            "text": obj.properties["text"],
+            "source": obj.properties.get("source", "CIS v8"),
+            "chunk_id": obj.properties.get("chunk_id", -1),
+        }
+        for obj in results.objects
+    ]
