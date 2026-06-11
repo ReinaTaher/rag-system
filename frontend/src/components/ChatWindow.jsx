@@ -110,18 +110,17 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
 
                 {/* Pick buttons */}
                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px', justifyContent: 'center' }}>
-                  <button
-                    onClick={() => onPickVersion(i, 1)}
-                    style={{ padding: '7px 18px', backgroundColor: 'transparent', color: theme.textMuted, border: `1px solid ${theme.inputBorder}`, borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}
-                  >
-                    Use Version 1
-                  </button>
-                  <button
-                    onClick={() => onPickVersion(i, 2)}
-                    style={{ padding: '7px 18px', backgroundColor: theme.btnPrimary, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
-                  >
-                    Use Version 2
-                  </button>
+                  {[1, 2].map(v => (
+                    <button
+                      key={v}
+                      onClick={() => onPickVersion(i, v)}
+                      style={{ padding: '7px 18px', backgroundColor: 'transparent', color: theme.textMuted, border: `1px solid ${theme.inputBorder}`, borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = theme.btnPrimary; e.currentTarget.style.color = theme.textStrong }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = theme.inputBorder; e.currentTarget.style.color = theme.textMuted }}
+                    >
+                      Use Version {v}
+                    </button>
+                  ))}
                   <button
                     onClick={onDismissCompare}
                     style={{ padding: '7px 14px', backgroundColor: 'transparent', color: theme.textFaint, border: 'none', fontSize: '13px', cursor: 'pointer' }}
@@ -188,20 +187,20 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
                       }}>
                         <button
                           onClick={() => onRegenerate(i)}
-                          disabled={streaming || loading || compareMode !== null}
+                          disabled={streaming || loading}
                           title="Regenerate response"
                           style={{
                             background: 'none',
                             border: 'none',
-                            cursor: streaming || loading || compareMode ? 'not-allowed' : 'pointer',
+                            cursor: streaming || loading ? 'not-allowed' : 'pointer',
                             color: theme.textFaint,
                             fontSize: '13px',
                             padding: '2px 4px',
                             borderRadius: '4px',
-                            opacity: streaming || loading || compareMode ? 0.4 : 1,
+                            opacity: streaming || loading ? 0.4 : 1,
                             transition: 'color 0.15s',
                           }}
-                          onMouseEnter={e => { if (!streaming && !loading && !compareMode) e.currentTarget.style.color = theme.text }}
+                          onMouseEnter={e => { if (!streaming && !loading) e.currentTarget.style.color = theme.text }}
                           onMouseLeave={e => { e.currentTarget.style.color = theme.textFaint }}
                         >
                           ↺ Regenerate
