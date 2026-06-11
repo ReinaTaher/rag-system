@@ -29,8 +29,7 @@ export default function CitationTooltip({ id, source }) {
         <div style={{
           position: 'absolute',
           bottom: '24px',
-          left: '50%',
-          transform: 'translateX(-50%)',
+          left: '0',
           width: '280px',
           backgroundColor: theme.cardBg,
           border: `1px solid ${theme.cardBorder}`,
@@ -62,8 +61,8 @@ export default function CitationTooltip({ id, source }) {
           <div style={{
             position: 'absolute',
             bottom: '-5px',
-            left: '50%',
-            transform: 'translateX(-50%) rotate(45deg)',
+            left: '10px',
+            transform: 'rotate(45deg)',
             width: '8px',
             height: '8px',
             backgroundColor: theme.cardBg,
