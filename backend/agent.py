@@ -198,6 +198,40 @@ def _build_sources_payload(top_chunks: list[tuple[dict, float]]) -> list[dict]:
     ]
 
 
+def _normalize_citations(text: str, sources: list[dict]) -> tuple[str, list[dict]]:
+    """
+    Renumber citations sequentially based on order of first appearance and
+    filter sources to only those actually cited in the response.
+    e.g. if LLM used [1],[2],[4] → remapped to [1],[2],[3], source [4]→[3].
+    """
+    used_order: list[int] = []
+    for m in re.finditer(r'\[(\d+)\]', text):
+        n = int(m.group(1))
+        if n not in used_order:
+            used_order.append(n)
+
+    if not used_order:
+        return text, []
+
+    remap = {old: new for new, old in enumerate(used_order, start=1)}
+
+    new_text = re.sub(
+        r'\[(\d+)\]',
+        lambda m: f"[{remap.get(int(m.group(1)), int(m.group(1)))}]",
+        text,
+    )
+
+    source_map = {s["id"]: s for s in sources}
+    new_sources = []
+    for old_num in used_order:
+        if old_num in source_map:
+            s = dict(source_map[old_num])
+            s["id"] = remap[old_num]
+            new_sources.append(s)
+
+    return new_text, new_sources
+
+
 def _build_prompt(
     query: str,
     top_chunks: list[tuple[dict, float]],
@@ -214,22 +248,21 @@ def _build_prompt(
         history_section = f"Previous conversation:\n{_format_history(history)}\n\n"
     return (
         "You are an expert assistant on CIS Critical Security Controls v8.\n\n"
-        "You MUST cite sources inline. Every sentence that uses information from the context "
-        "must end with the citation number in brackets, like this: [1] or [2].\n"
-        "Example of correct citation usage: \"Assets must be inventoried regularly [1]. "
-        "Software licenses should also be tracked [2].\"\n\n"
         "Answer the question using ONLY the context provided below. Do not use outside knowledge.\n\n"
-        "Rules:\n"
-        "- Add [1], [2], etc. after EVERY sentence that draws from the context. Do not skip citations.\n"
-        "- Cite specific CIS Control numbers and names when they appear in the context.\n"
-        "- If the question asks for a list, respond with a clear numbered or bulleted list.\n"
-        "- If the question asks what a control is or what it covers, give a complete summary: its purpose, why it is critical, and its key safeguards.\n"
-        "- Be specific and complete — avoid one-line answers for overview questions.\n"
-        "- Write your full answer first. Only if the context contains absolutely no relevant information, end with exactly: 'This information is not available in the provided context.' Never add this phrase after you have already given an answer.\n\n"
+        "Formatting rules — follow these exactly:\n"
+        "- Use **bold** for all CIS Control names, security terms, and key concepts.\n"
+        "- Whenever listing multiple items, safeguards, steps, or requirements, use a bulleted list (- item) or numbered list (1. item). Never write them as a single run-on sentence.\n"
+        "- Write in clear paragraphs. Use a new line between paragraphs.\n\n"
+        "Citation rules — follow these exactly:\n"
+        "- End every sentence that draws from the context with its source number in brackets: [1], [2], etc.\n"
+        "- Use only the numbers available in the context (1 through " + str(len(top_chunks)) + ").\n"
+        "- Do not skip numbers — if you use [1] and [3], also use [2] somewhere or don't use [3].\n"
+        "- Do not repeat the same citation number more than twice in a row.\n"
+        "Example: \"**Assets** must be inventoried regularly [1]. **Software licenses** should also be tracked [2].\"\n\n"
         f"{history_section}"
         f"Context:\n{context}\n\n"
         f"Question: {query}\n\n"
-        "Answer (remember to add [1], [2], etc. after each sentence):"
+        "Answer:"
     )
 
 
@@ -264,15 +297,24 @@ def stream_knowledge_agent(
     )
     response.raise_for_status()
 
+    full_response = ""
     for line in response.iter_lines():
         if not line:
             continue
         data = json.loads(line)
         token = data.get("response", "")
         if token:
-            yield f"data: {json.dumps({'token': token})}\n\n"
+            full_response += token
         if data.get("done"):
-            sources = _build_sources_payload(top_chunks)
-            yield f"data: {json.dumps({'sources': sources})}\n\n"
-            yield "data: [DONE]\n\n"
             break
+
+    raw_sources = _build_sources_payload(top_chunks)
+    full_response, sources = _normalize_citations(full_response, raw_sources)
+
+    # Re-stream the corrected response preserving all whitespace
+    for chunk in re.split(r'(\s+)', full_response):
+        if chunk:
+            yield f"data: {json.dumps({'token': chunk})}\n\n"
+
+    yield f"data: {json.dumps({'sources': sources})}\n\n"
+    yield "data: [DONE]\n\n"
