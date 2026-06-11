@@ -212,7 +212,7 @@ def _build_prompt(
 
 
 def stream_knowledge_agent(
-    query: str, history: list[dict] | None = None
+    query: str, history: list[dict] | None = None, temperature: float = 0
 ) -> Generator[str, None, None]:
     """Route to streaming RAG pipeline for security queries, free chat otherwise."""
     history = (history or [])[-HISTORY_LIMIT:]
@@ -235,7 +235,7 @@ def stream_knowledge_agent(
             "model": OLLAMA_MODEL,
             "prompt": prompt,
             "stream": True,
-            "options": {"temperature": 0},
+            "options": {"temperature": temperature},
         },
         stream=True,
         timeout=120,
