@@ -189,11 +189,6 @@ export default function App() {
     if (!userQuery) return
 
     setStreaming(true)
-    setMessageFeedback(prev => {
-      const updated = { ...prev }
-      delete updated[msg.id]
-      return updated
-    })
     setMessages(prev => {
       const updated = [...prev]
       updated[msgIndex] = { ...updated[msgIndex], content: '', sources: null, versions: null }
@@ -278,14 +273,14 @@ export default function App() {
     }
   }
 
-  async function submitFeedback(messageId, vote, reason) {
+  async function submitFeedback(messageId, versionNum, vote, reason) {
     try {
       await fetch(`${API}/messages/${messageId}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vote, reason: reason || '' }),
+        body: JSON.stringify({ vote, reason: reason || '', version_num: versionNum }),
       })
-      setMessageFeedback(prev => ({ ...prev, [messageId]: vote }))
+      setMessageFeedback(prev => ({ ...prev, [`${messageId}_v${versionNum}`]: vote }))
     } catch {
       console.error('Failed to submit feedback')
     }

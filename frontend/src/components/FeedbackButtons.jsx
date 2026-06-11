@@ -10,7 +10,7 @@ const REASONS = [
   'Other',
 ]
 
-export default function FeedbackButtons({ messageId, voted, onFeedback }) {
+export default function FeedbackButtons({ messageId, versionNum = 1, voted, onFeedback }) {
   const { theme } = useTheme()
   const [showReasons, setShowReasons] = useState(false)
   const [selectedReason, setSelectedReason] = useState(null)
@@ -19,7 +19,7 @@ export default function FeedbackButtons({ messageId, voted, onFeedback }) {
 
   async function handleUp() {
     if (voted) return
-    await onFeedback(messageId, 'up', null)
+    await onFeedback(messageId, versionNum, 'up', null)
   }
 
   function handleDown() {
@@ -31,7 +31,7 @@ export default function FeedbackButtons({ messageId, voted, onFeedback }) {
     if (!selectedReason) return
     setShowReasons(false)
     setSelectedReason(null)
-    await onFeedback(messageId, 'down', selectedReason)
+    await onFeedback(messageId, versionNum, 'down', selectedReason)
   }
 
   function handleCancel() {

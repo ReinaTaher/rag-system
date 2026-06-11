@@ -148,7 +148,8 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
                         <div style={{ marginLeft: 'auto' }}>
                           <FeedbackButtons
                             messageId={msg.id}
-                            voted={messageFeedback?.[msg.id] ?? null}
+                            versionNum={displayedVersion}
+                            voted={messageFeedback?.[`${msg.id}_v${displayedVersion}`] ?? null}
                             onFeedback={onFeedback}
                           />
                         </div>

@@ -45,6 +45,7 @@ class CreateThreadRequest(BaseModel):
 class FeedbackRequest(BaseModel):
     vote: str        # "up" or "down"
     reason: str = "" # required when vote == "down"
+    version_num: int = 1
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -283,6 +284,7 @@ async def submit_feedback(message_id: str, body: FeedbackRequest):
 
     await feedback_collection.insert_one({
         "message_id": message_id,
+        "version_num": body.version_num,
         "vote": body.vote,
         "reason": body.reason.strip() if body.vote == "down" else None,
         "created_at": _now(),
