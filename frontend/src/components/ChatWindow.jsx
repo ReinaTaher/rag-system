@@ -3,13 +3,13 @@ import ReactMarkdown from 'react-markdown'
 import { useTheme } from '../context/ThemeContext'
 import CitationTooltip from './CitationTooltip'
 import SourcesPanel from './SourcesPanel'
+import FeedbackButtons from './FeedbackButtons'
 
-// Convert [1] [2] etc. in text to markdown links so ReactMarkdown can intercept them
 function preprocessCitations(text) {
   return text.replace(/\[(\d+)\]/g, (_, n) => `[[${n}]](#cite-${n})`)
 }
 
-export default function ChatWindow({ messages, loading, streaming }) {
+export default function ChatWindow({ messages, loading, streaming, onRegenerate, onSwitchVersion, onFeedback, messageFeedback }) {
   const { theme } = useTheme()
   const bottomRef = useRef(null)
 
@@ -28,6 +28,16 @@ export default function ChatWindow({ messages, loading, streaming }) {
         {messages.map((msg, i) => {
           const isUser = msg.role === 'user'
           const isLastAssistant = !isUser && i === messages.length - 1
+          const isStreaming = streaming && isLastAssistant
+
+          const displayedVersion = msg.displayedVersion ?? msg.version_count ?? 1
+          const isShowingOldVersion = displayedVersion < (msg.version_count ?? 1) && msg.versions
+          const displayedContent = isShowingOldVersion
+            ? (msg.versions.find(v => v.version_num === displayedVersion)?.content ?? msg.content)
+            : msg.content
+          const displayedSources = isShowingOldVersion
+            ? (msg.versions.find(v => v.version_num === displayedVersion)?.sources ?? null)
+            : msg.sources
 
           return (
             <div
@@ -52,23 +62,98 @@ export default function ChatWindow({ messages, loading, streaming }) {
                       <ReactMarkdown
                         components={{
                           a({ href, children }) {
-                            // Intercept citation links like #cite-1
                             if (href?.startsWith('#cite-')) {
                               const id = parseInt(href.slice(6), 10)
-                              const source = msg.sources?.find(s => s.id === id) || null
+                              const source = displayedSources?.find(s => s.id === id) || null
                               return <CitationTooltip id={id} source={source} />
                             }
                             return <a href={href} target="_blank" rel="noreferrer">{children}</a>
                           },
                         }}
                       >
-                        {preprocessCitations(msg.content)}
+                        {preprocessCitations(displayedContent)}
                       </ReactMarkdown>
-                      {streaming && isLastAssistant && (
+                      {isStreaming && (
                         <span style={{ color: theme.textFaint, marginLeft: '1px' }}>▌</span>
                       )}
                     </div>
-                    {!streaming && <SourcesPanel sources={msg.sources} />}
+
+                    {!isStreaming && <SourcesPanel sources={displayedSources} />}
+
+                    {/* Action row: regenerate + version switcher + feedback */}
+                    {!isStreaming && msg.id && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginTop: '10px',
+                        paddingTop: '8px',
+                        borderTop: `1px solid ${theme.assistantBubbleBorder}`,
+                      }}>
+                        <button
+                          onClick={() => onRegenerate(i)}
+                          disabled={streaming || loading}
+                          title="Regenerate response"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: streaming || loading ? 'not-allowed' : 'pointer',
+                            color: theme.textFaint,
+                            fontSize: '13px',
+                            padding: '2px 4px',
+                            borderRadius: '4px',
+                            opacity: streaming || loading ? 0.4 : 1,
+                            transition: 'color 0.15s',
+                          }}
+                          onMouseEnter={e => { if (!streaming && !loading) e.currentTarget.style.color = theme.text }}
+                          onMouseLeave={e => { e.currentTarget.style.color = theme.textFaint }}
+                        >
+                          ↺ Regenerate
+                        </button>
+
+                        {(msg.version_count ?? 1) > 1 && (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '12px',
+                            color: theme.textMuted,
+                          }}>
+                            <button
+                              onClick={() => onSwitchVersion(i, -1)}
+                              disabled={displayedVersion <= 1}
+                              style={{
+                                background: 'none', border: 'none',
+                                cursor: displayedVersion <= 1 ? 'default' : 'pointer',
+                                color: displayedVersion <= 1 ? theme.textFaint : theme.textMuted,
+                                fontSize: '13px', padding: '0 3px',
+                              }}
+                            >◀</button>
+                            <span style={{ minWidth: '32px', textAlign: 'center' }}>
+                              {displayedVersion}/{msg.version_count}
+                            </span>
+                            <button
+                              onClick={() => onSwitchVersion(i, 1)}
+                              disabled={displayedVersion >= msg.version_count}
+                              style={{
+                                background: 'none', border: 'none',
+                                cursor: displayedVersion >= msg.version_count ? 'default' : 'pointer',
+                                color: displayedVersion >= msg.version_count ? theme.textFaint : theme.textMuted,
+                                fontSize: '13px', padding: '0 3px',
+                              }}
+                            >▶</button>
+                          </div>
+                        )}
+
+                        <div style={{ marginLeft: 'auto' }}>
+                          <FeedbackButtons
+                            messageId={msg.id}
+                            voted={messageFeedback?.[msg.id] ?? null}
+                            onFeedback={onFeedback}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>

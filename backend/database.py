@@ -8,3 +8,5 @@ db = client[DB_NAME]
 
 threads_collection = db["threads"]
 messages_collection = db["messages"]
+message_versions_collection = db["message_versions"]
+feedback_collection = db["feedback"]
