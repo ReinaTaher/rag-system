@@ -64,7 +64,7 @@ export default function Header({ isMobile, onToggleSidebar, hasActiveThread, onE
         {hasActiveThread && (
           <button
             onClick={onExport}
-            title="Export conversation as Markdown"
+            title="Export conversation as PDF"
             style={{
               background: theme.badge,
               border: `1px solid ${theme.badgeBorder}`,
