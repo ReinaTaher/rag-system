@@ -5,11 +5,15 @@ import ChatInput from './components/ChatInput'
 import Sidebar from './components/Sidebar'
 import GuidedTour from './components/GuidedTour'
 import { useTheme } from './context/ThemeContext'
+import { useWindowSize } from './hooks/useWindowSize'
 
 const API = 'http://localhost:8000'
 
 export default function App() {
   const { theme } = useTheme()
+  const windowWidth = useWindowSize()
+  const isMobile = windowWidth < 640
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 640)
   const [threads, setThreads] = useState([])
   const [activeThreadId, setActiveThreadId] = useState(null)
   const [messages, setMessages] = useState([])
@@ -17,6 +21,11 @@ export default function App() {
   const [streaming, setStreaming] = useState(false)
   const [tourRunning, setTourRunning] = useState(false)
   const [messageFeedback, setMessageFeedback] = useState({})
+
+  useEffect(() => {
+    if (windowWidth >= 640) setSidebarOpen(true)
+    else setSidebarOpen(false)
+  }, [windowWidth])
 
   useEffect(() => {
     fetchThreads()
@@ -299,25 +308,41 @@ export default function App() {
     }}>
       <div style={{
         width: '100%',
-        maxWidth: '1100px',
-        height: '95vh',
+        maxWidth: isMobile ? '100%' : '1100px',
+        height: isMobile ? '100vh' : '95vh',
         backgroundColor: theme.cardBg,
-        borderRadius: '16px',
-        border: `1px solid ${theme.cardBorder}`,
+        borderRadius: isMobile ? '0' : '16px',
+        border: isMobile ? 'none' : `1px solid ${theme.cardBorder}`,
         display: 'flex',
         flexDirection: 'row',
         overflow: 'hidden',
+        position: 'relative',
       }}>
+        {/* Mobile backdrop — tap to close sidebar */}
+        {isMobile && sidebarOpen && (
+          <div
+            onClick={() => setSidebarOpen(false)}
+            style={{
+              position: 'absolute', inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              zIndex: 50,
+            }}
+          />
+        )}
+
         <Sidebar
           threads={threads}
           activeThreadId={activeThreadId}
-          onSelect={selectThread}
-          onNewChat={createThread}
+          onSelect={(id) => { selectThread(id); if (isMobile) setSidebarOpen(false) }}
+          onNewChat={() => { createThread(); if (isMobile) setSidebarOpen(false) }}
           onDelete={deleteThread}
+          isOpen={sidebarOpen}
+          isMobile={isMobile}
+          onClose={() => setSidebarOpen(false)}
         />
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <Header />
+          <Header isMobile={isMobile} onToggleSidebar={() => setSidebarOpen(v => !v)} />
 
           {activeThreadId ? (
             <>
@@ -330,6 +355,7 @@ export default function App() {
                   onSwitchVersion={switchVersion}
                   onFeedback={submitFeedback}
                   messageFeedback={messageFeedback}
+                  isMobile={isMobile}
                 />
               </div>
               <ChatInput onSend={sendMessage} disabled={loading || streaming} />

@@ -10,7 +10,7 @@ const REASONS = [
   'Other',
 ]
 
-export default function FeedbackButtons({ messageId, versionNum = 1, voted, onFeedback }) {
+export default function FeedbackButtons({ messageId, versionNum = 1, voted, onFeedback, isMobile }) {
   const { theme } = useTheme()
   const [showReasons, setShowReasons] = useState(false)
   const [selectedReason, setSelectedReason] = useState(null)
@@ -91,7 +91,7 @@ export default function FeedbackButtons({ messageId, versionNum = 1, voted, onFe
           position: 'absolute',
           bottom: 'calc(100% + 6px)',
           right: 0,
-          width: '260px',
+          width: isMobile ? '220px' : '260px',
           padding: '12px',
           backgroundColor: theme.cardBg,
           border: `1px solid ${theme.cardBorder}`,

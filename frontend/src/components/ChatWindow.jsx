@@ -9,7 +9,7 @@ function preprocessCitations(text) {
   return text.replace(/\[(\d+)\]/g, (_, n) => `[[${n}]](#cite-${n})`)
 }
 
-export default function ChatWindow({ messages, loading, streaming, onRegenerate, onSwitchVersion, onFeedback, messageFeedback }) {
+export default function ChatWindow({ messages, loading, streaming, onRegenerate, onSwitchVersion, onFeedback, messageFeedback, isMobile }) {
   const { theme } = useTheme()
   const bottomRef = useRef(null)
 
@@ -22,7 +22,7 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
   return (
     <div
       className="dark-scrollbar"
-      style={{ height: '100%', overflowY: 'auto', padding: '24px 28px' }}
+      style={{ height: '100%', overflowY: 'auto', padding: isMobile ? '16px 12px' : '24px 28px' }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {messages.map((msg, i) => {
@@ -45,7 +45,7 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
               style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}
             >
               <div style={{
-                maxWidth: '72%',
+                maxWidth: isMobile ? '90%' : '72%',
                 padding: '12px 16px',
                 borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                 backgroundColor: isUser ? theme.userBubble : theme.assistantBubble,
@@ -151,6 +151,7 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
                             versionNum={displayedVersion}
                             voted={messageFeedback?.[`${msg.id}_v${displayedVersion}`] ?? null}
                             onFeedback={onFeedback}
+                            isMobile={isMobile}
                           />
                         </div>
                       </div>

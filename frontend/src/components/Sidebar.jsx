@@ -1,6 +1,6 @@
 import { useTheme } from '../context/ThemeContext'
 
-export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, onDelete }) {
+export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, onDelete, isOpen, isMobile, onClose }) {
   const { theme } = useTheme()
 
   function timeAgo(dateStr) {
@@ -13,6 +13,8 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, 
     return `${Math.floor(hrs / 24)}d ago`
   }
 
+  if (isMobile && !isOpen) return null
+
   return (
     <div style={{
       width: '240px',
@@ -22,11 +24,22 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, 
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
+      ...(isMobile && {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        height: '100%',
+        zIndex: 60,
+        boxShadow: '4px 0 24px rgba(0,0,0,0.3)',
+      }),
     }}>
       <div style={{
         padding: '16px 14px 12px',
         borderBottom: `1px solid ${theme.sidebarBorder}`,
         flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
       }}>
         <button
           id="tour-new-chat"
@@ -50,6 +63,24 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, 
           <span style={{ fontSize: '16px', lineHeight: 1 }}>+</span>
           New Chat
         </button>
+        {isMobile && (
+          <button
+            onClick={onClose}
+            style={{
+              flexShrink: 0,
+              background: 'none',
+              border: `1px solid ${theme.sidebarBorder}`,
+              borderRadius: '7px',
+              cursor: 'pointer',
+              color: theme.textMuted,
+              fontSize: '16px',
+              padding: '4px 8px',
+              lineHeight: 1,
+            }}
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       <div

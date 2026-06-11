@@ -1,12 +1,12 @@
-import { Sun, Moon } from 'lucide-react'
+import { Sun, Moon, Menu } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
-export default function Header() {
+export default function Header({ isMobile, onToggleSidebar }) {
   const { theme, isDark, toggle } = useTheme()
 
   return (
     <div style={{
-      padding: '16px 24px',
+      padding: isMobile ? '12px 16px' : '16px 24px',
       borderBottom: `1px solid ${theme.headerBorder}`,
       display: 'flex',
       alignItems: 'center',
@@ -14,6 +14,22 @@ export default function Header() {
       flexShrink: 0,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {isMobile && (
+          <button
+            onClick={onToggleSidebar}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: theme.textMuted,
+              padding: '2px 4px',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <Menu size={18} />
+          </button>
+        )}
         <div style={{
           width: '8px',
           height: '8px',
