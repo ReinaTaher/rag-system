@@ -67,15 +67,17 @@ def _is_rag_query(query: str) -> bool:
 
 def _is_list_all_query(query: str) -> bool:
     q = query.lower()
-    wants_explanation = any(w in q for w in (
-        "explain", "description", "describe", "detail", "short", "brief",
-        "summary", "about", "what does", "what do", "overview", "meaning",
-    ))
-    if wants_explanation:
+    # Exclude explanation/detail requests
+    if any(w in q for w in ("explain", "describe", "detail", "brief", "summary",
+                             "about", "what does", "what do", "overview", "meaning")):
         return False
-    return "control" in q and ("all" in q or "18" in q) and any(
-        w in q for w in ("list", "what are", "name", "show")
-    )
+    # Exclude queries targeting a specific control number
+    if re.search(r'\bcontrol\s+\d+\b', q):
+        return False
+    has_control = "control" in q
+    has_list_intent = any(w in q for w in ("list", "what are", "name", "show", "give"))
+    has_all_marker = "all" in q or "18" in q or "every" in q
+    return has_control and (has_list_intent or has_all_marker)
 
 
 def _all_controls_answer() -> str:
