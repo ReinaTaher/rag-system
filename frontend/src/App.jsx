@@ -297,7 +297,7 @@ export default function App() {
 
   return (
     <>
-    <GuidedTour run={tourRunning} onFinish={handleTourFinish} />
+    <GuidedTour run={tourRunning} onFinish={handleTourFinish} isMobile={isMobile} />
     <div style={{
       height: '100vh',
       width: '100vw',
