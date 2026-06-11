@@ -150,7 +150,7 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, 
                   fontSize: '14px',
                   padding: '2px 4px',
                   borderRadius: '4px',
-                  opacity: 0,
+                  opacity: isMobile ? 0.5 : 0,
                   transition: 'opacity 0.15s, color 0.15s',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.color = '#ef4444' }}
