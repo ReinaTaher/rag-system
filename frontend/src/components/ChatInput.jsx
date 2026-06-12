@@ -4,23 +4,39 @@ import { useTheme } from '../context/ThemeContext'
 const ChatInput = forwardRef(function ChatInput({ onSend, disabled }, ref) {
   const { theme } = useTheme()
   const [value, setValue] = useState('')
-  const inputRef = useRef(null)
+  const textareaRef = useRef(null)
 
   useEffect(() => {
-    if (!disabled) inputRef.current?.focus()
+    if (!disabled) textareaRef.current?.focus()
   }, [disabled])
 
   useImperativeHandle(ref, () => ({
     fill(text) {
       setValue(text)
-      inputRef.current?.focus()
+      textareaRef.current?.focus()
+      // Trigger resize after value is set
+      setTimeout(() => resizeTextarea(textareaRef.current), 0)
     }
   }))
+
+  function resizeTextarea(el) {
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+  }
+
+  function handleChange(e) {
+    setValue(e.target.value)
+    resizeTextarea(e.target)
+  }
 
   function handleSend() {
     if (!value.trim() || disabled) return
     onSend(value.trim())
     setValue('')
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+    }
   }
 
   function handleKeyDown(e) {
@@ -40,20 +56,20 @@ const ChatInput = forwardRef(function ChatInput({ onSend, disabled }, ref) {
     }}>
       <div style={{
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         gap: '10px',
         backgroundColor: theme.inputBg,
         border: `1px solid ${theme.inputBorder}`,
         borderRadius: '12px',
         padding: '8px 8px 8px 16px',
       }}>
-        <input
+        <textarea
           id="tour-chat-input"
-          ref={inputRef}
-          type="text"
+          ref={textareaRef}
+          rows={1}
           placeholder="Ask about CIS Security Controls..."
           value={value}
-          onChange={e => setValue(e.target.value)}
+          onChange={handleChange}
           onKeyDown={handleKeyDown}
           disabled={disabled}
           style={{
@@ -64,6 +80,10 @@ const ChatInput = forwardRef(function ChatInput({ onSend, disabled }, ref) {
             color: theme.text,
             fontSize: '14px',
             lineHeight: '1.5',
+            resize: 'none',
+            overflow: 'hidden',
+            fontFamily: 'inherit',
+            maxHeight: '120px',
           }}
         />
         <button
@@ -80,6 +100,7 @@ const ChatInput = forwardRef(function ChatInput({ onSend, disabled }, ref) {
             cursor: btnDisabled ? 'not-allowed' : 'pointer',
             transition: 'background-color 0.15s, color 0.15s',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
         >
           {disabled ? 'Thinking…' : 'Send'}

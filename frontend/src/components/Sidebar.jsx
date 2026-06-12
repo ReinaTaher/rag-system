@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Pencil } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
 export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, onDelete, onRename, isOpen, isMobile, onClose }) {
@@ -166,10 +167,9 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, 
               ) : (
                 <button
                   onClick={() => onSelect(thread.id)}
-                  onDoubleClick={e => startEdit(e, thread)}
                   style={{
                     width: '100%',
-                    padding: '9px 32px 9px 10px',
+                    padding: '9px 52px 9px 10px',
                     backgroundColor: isActive ? theme.activeThread : 'transparent',
                     border: `1px solid ${isActive ? theme.activeThreadBorder : 'transparent'}`,
                     borderRadius: '7px',
@@ -196,33 +196,62 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, 
                 </button>
               )}
 
-              <button
-                className="delete-btn"
-                onClick={e => {
-                  e.stopPropagation()
-                  if (window.confirm('Delete this conversation?')) onDelete(thread.id)
-                }}
-                title="Delete conversation"
-                style={{
-                  position: 'absolute',
-                  right: '6px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: theme.textFaint,
-                  fontSize: '14px',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  opacity: isMobile ? 0.5 : 0,
-                  transition: 'opacity 0.15s, color 0.15s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#ef4444' }}
-                onMouseLeave={e => { e.currentTarget.style.color = theme.textFaint }}
-              >
-                ✕
-              </button>
+              {editingId !== thread.id && (
+                <>
+                  <button
+                    className="action-btn"
+                    onClick={e => startEdit(e, thread)}
+                    title="Rename conversation"
+                    style={{
+                      position: 'absolute',
+                      right: '26px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: theme.textFaint,
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      opacity: isMobile ? 0.5 : 0,
+                      transition: 'opacity 0.15s, color 0.15s',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.color = theme.btnPrimary }}
+                    onMouseLeave={e => { e.currentTarget.style.color = theme.textFaint }}
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    className="action-btn delete-btn"
+                    onClick={e => {
+                      e.stopPropagation()
+                      if (window.confirm('Delete this conversation?')) onDelete(thread.id)
+                    }}
+                    title="Delete conversation"
+                    style={{
+                      position: 'absolute',
+                      right: '6px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: theme.textFaint,
+                      fontSize: '14px',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      opacity: isMobile ? 0.5 : 0,
+                      transition: 'opacity 0.15s, color 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#ef4444' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = theme.textFaint }}
+                  >
+                    ✕
+                  </button>
+                </>
+              )}
             </div>
           )
         })}
