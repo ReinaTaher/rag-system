@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { useTheme } from '../context/ThemeContext'
 
-export default function ChatInput({ onSend, disabled }) {
+const ChatInput = forwardRef(function ChatInput({ onSend, disabled }, ref) {
   const { theme } = useTheme()
   const [value, setValue] = useState('')
   const inputRef = useRef(null)
@@ -9,6 +9,13 @@ export default function ChatInput({ onSend, disabled }) {
   useEffect(() => {
     if (!disabled) inputRef.current?.focus()
   }, [disabled])
+
+  useImperativeHandle(ref, () => ({
+    fill(text) {
+      setValue(text)
+      inputRef.current?.focus()
+    }
+  }))
 
   function handleSend() {
     if (!value.trim() || disabled) return
@@ -83,4 +90,6 @@ export default function ChatInput({ onSend, disabled }) {
       </p>
     </div>
   )
-}
+})
+
+export default ChatInput

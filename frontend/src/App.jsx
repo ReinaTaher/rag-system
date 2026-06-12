@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { jsPDF } from 'jspdf'
 import Header from './components/Header'
 import ChatWindow from './components/ChatWindow'
@@ -25,6 +25,12 @@ export default function App() {
   const [tourRunning, setTourRunning] = useState(false)
   const [messageFeedback, setMessageFeedback] = useState({})
   const [showAnalytics, setShowAnalytics] = useState(false)
+  const chatInputRef = useRef(null)
+
+  function handleAskAboutSource(src) {
+    const prompt = `Can you elaborate on: "${src.text.slice(0, 80).trim()}"`
+    chatInputRef.current?.fill(prompt)
+  }
   const [compareMode, setCompareMode] = useState(null)
   // compareMode shape: { msgIndex } — only set when version_count === 2
 
@@ -567,9 +573,10 @@ export default function App() {
                   onCompare={startComparison}
                   onDismissCompare={dismissComparison}
                   onPickVersion={pickCompareVersion}
+                  onAskAboutSource={handleAskAboutSource}
                 />
               </div>
-              <ChatInput onSend={sendMessage} disabled={loading || streaming} />
+              <ChatInput ref={chatInputRef} onSend={sendMessage} disabled={loading || streaming} />
             </>
           ) : (
             <EmptyState onNewChat={createThread} onSend={sendMessage} />

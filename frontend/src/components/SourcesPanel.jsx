@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTheme } from '../context/ThemeContext'
 
-export default function SourcesPanel({ sources }) {
+export default function SourcesPanel({ sources, onAskAbout }) {
   const { theme } = useTheme()
   const [open, setOpen] = useState(false)
 
@@ -102,6 +102,26 @@ export default function SourcesPanel({ sources }) {
               }}>
                 {src.text}
               </p>
+              {onAskAbout && (
+                <button
+                  onClick={() => onAskAbout(src)}
+                  style={{
+                    marginTop: '6px',
+                    background: 'none',
+                    border: `1px solid ${theme.inputBorder}`,
+                    borderRadius: '5px',
+                    padding: '3px 8px',
+                    fontSize: '11px',
+                    color: theme.textMuted,
+                    cursor: 'pointer',
+                    transition: 'color 0.15s, border-color 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = theme.btnPrimary; e.currentTarget.style.borderColor = theme.btnPrimary }}
+                  onMouseLeave={e => { e.currentTarget.style.color = theme.textMuted; e.currentTarget.style.borderColor = theme.inputBorder }}
+                >
+                  Ask about this →
+                </button>
+              )}
             </div>
           ))}
         </div>
