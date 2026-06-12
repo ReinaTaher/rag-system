@@ -9,7 +9,7 @@ function preprocessCitations(text) {
   return text.replace(/\[(\d+)\]/g, (_, n) => `[[${n}]](#cite-${n})`)
 }
 
-export default function ChatWindow({ messages, loading, streaming, onRegenerate, onSwitchVersion, onFeedback, messageFeedback, isMobile, compareMode, onCompare, onDismissCompare, onPickVersion }) {
+export default function ChatWindow({ messages, loading, streaming, onRegenerate, onSwitchVersion, onFeedback, messageFeedback, isMobile, compareMode, onCompare, onDismissCompare, onPickVersion, onAskAboutSource }) {
   const { theme } = useTheme()
   const bottomRef = useRef(null)
   const [copiedIdx, setCopiedIdx] = useState(null)
@@ -101,7 +101,7 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
                         {preprocessCitations(v1?.content || '')}
                       </ReactMarkdown>
                     </div>
-                    <SourcesPanel sources={v1?.sources} />
+                    <SourcesPanel sources={v1?.sources} onAskAbout={onAskAboutSource} />
                   </div>
 
                   {/* V2 */}
@@ -117,7 +117,7 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
                         {preprocessCitations(v2Content)}
                       </ReactMarkdown>
                     </div>
-                    <SourcesPanel sources={v2Sources} />
+                    <SourcesPanel sources={v2Sources} onAskAbout={onAskAboutSource} />
                   </div>
                 </div>
 
@@ -185,7 +185,7 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
                       )}
                     </div>
 
-                    {!isStreaming && <SourcesPanel sources={displayedSources} />}
+                    {!isStreaming && <SourcesPanel sources={displayedSources} onAskAbout={onAskAboutSource} />}
 
                     {/* Action row: regenerate + compare + version switcher + feedback */}
                     {!isStreaming && msg.id && (
