@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useTheme } from '../context/ThemeContext'
 import CitationTooltip from './CitationTooltip'
@@ -12,6 +12,19 @@ function preprocessCitations(text) {
 export default function ChatWindow({ messages, loading, streaming, onRegenerate, onSwitchVersion, onFeedback, messageFeedback, isMobile, compareMode, onCompare, onDismissCompare, onPickVersion }) {
   const { theme } = useTheme()
   const bottomRef = useRef(null)
+  const [copiedIdx, setCopiedIdx] = useState(null)
+
+  function copyMessage(idx, content) {
+    const plain = content
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/\[(\d+)\]/g, '')
+      .trim()
+    navigator.clipboard.writeText(plain).then(() => {
+      setCopiedIdx(idx)
+      setTimeout(() => setCopiedIdx(null), 1500)
+    })
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -262,6 +275,25 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
                             >▶</button>
                           </div>
                         )}
+
+                        <button
+                          onClick={() => copyMessage(i, displayedContent)}
+                          title="Copy response"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: copiedIdx === i ? '#22c55e' : theme.textFaint,
+                            fontSize: '13px',
+                            padding: '2px 4px',
+                            borderRadius: '4px',
+                            transition: 'color 0.15s',
+                          }}
+                          onMouseEnter={e => { if (copiedIdx !== i) e.currentTarget.style.color = theme.text }}
+                          onMouseLeave={e => { if (copiedIdx !== i) e.currentTarget.style.color = theme.textFaint }}
+                        >
+                          {copiedIdx === i ? '✓ Copied' : '⎘ Copy'}
+                        </button>
 
                         <div style={{ marginLeft: 'auto' }}>
                           <FeedbackButtons
