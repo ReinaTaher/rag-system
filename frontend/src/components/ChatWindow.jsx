@@ -9,7 +9,7 @@ function preprocessCitations(text) {
   return text.replace(/\[(\d+)\]/g, (_, n) => `[[${n}]](#cite-${n})`)
 }
 
-export default function ChatWindow({ messages, loading, streaming, onRegenerate, onSwitchVersion, onFeedback, messageFeedback, isMobile, compareMode, onCompare, onDismissCompare, onPickVersion, onAskAboutSource }) {
+export default function ChatWindow({ messages, loading, streaming, onRegenerate, onSwitchVersion, onFeedback, messageFeedback, isMobile, compareMode, onCompare, onDismissCompare, onPickVersion, onAskAboutSource, suggestions, onSuggestionClick }) {
   const { theme } = useTheme()
   const bottomRef = useRef(null)
   const [copiedIdx, setCopiedIdx] = useState(null)
@@ -327,6 +327,37 @@ export default function ChatWindow({ messages, loading, streaming, onRegenerate,
               <span className="thinking-dot" style={{ animationDelay: '0ms' }} />
               <span className="thinking-dot" style={{ animationDelay: '160ms' }} />
               <span className="thinking-dot" style={{ animationDelay: '320ms' }} />
+            </div>
+          </div>
+        )}
+
+        {!streaming && !loading && suggestions?.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '4px' }}>
+            <span style={{ fontSize: '11px', color: theme.textFaint, fontWeight: '500', letterSpacing: '0.03em' }}>
+              Suggested follow-ups
+            </span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {suggestions.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => onSuggestionClick(s)}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: theme.assistantBubble,
+                    border: `1px solid ${theme.assistantBubbleBorder}`,
+                    borderRadius: '99px',
+                    fontSize: '12px',
+                    color: theme.textMuted,
+                    cursor: 'pointer',
+                    transition: 'border-color 0.15s, color 0.15s',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = theme.btnPrimary; e.currentTarget.style.color = theme.textStrong }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = theme.assistantBubbleBorder; e.currentTarget.style.color = theme.textMuted }}
+                >
+                  {s}
+                </button>
+              ))}
             </div>
           </div>
         )}
