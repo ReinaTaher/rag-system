@@ -1,4 +1,5 @@
-import { Joyride, STATUS, ACTIONS } from 'react-joyride'
+import { useState, useEffect } from 'react'
+import { Joyride, STATUS, ACTIONS, EVENTS } from 'react-joyride'
 import { useTheme } from '../context/ThemeContext'
 
 const STEPS_DESKTOP = [
@@ -58,13 +59,19 @@ const STEPS_MOBILE = [
 
 export default function GuidedTour({ run, onFinish, isMobile }) {
   const { isDark } = useTheme()
+  const [stepIndex, setStepIndex] = useState(0)
 
-  const bg      = '#ffffff'
+  // Reset step index whenever the tour starts
+  useEffect(() => {
+    if (run) setStepIndex(0)
+  }, [run])
+
+  const bg       = '#ffffff'
   const txtTitle = '#1a1a1a'
-  const txtSub  = '#52525b'
-  const overlay = isDark ? 'rgba(0,0,0,0.32)' : 'rgba(0,0,0,0.14)'
-  const border  = '#e4e4e7'
-  const shadow  = '0 8px 24px rgba(0,0,0,0.12)'
+  const txtSub   = '#52525b'
+  const overlay  = isDark ? 'rgba(0,0,0,0.32)' : 'rgba(0,0,0,0.14)'
+  const border   = '#e4e4e7'
+  const shadow   = '0 8px 24px rgba(0,0,0,0.12)'
 
   const tourStyles = {
     options: {
@@ -115,12 +122,20 @@ export default function GuidedTour({ run, onFinish, isMobile }) {
     },
   }
 
-  function handleCallback({ action, status }) {
+  function handleCallback({ action, index, status, type }) {
+    // X button or skip → end immediately, don't advance
     if (
-      [STATUS.FINISHED, STATUS.SKIPPED].includes(status) ||
-      action === ACTIONS.CLOSE
+      action === ACTIONS.CLOSE ||
+      action === ACTIONS.SKIP ||
+      [STATUS.FINISHED, STATUS.SKIPPED].includes(status)
     ) {
       onFinish()
+      return
+    }
+
+    // Next / Back — advance the controlled step index ourselves
+    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+      setStepIndex(i => i + (action === ACTIONS.PREV ? -1 : 1))
     }
   }
 
@@ -128,6 +143,7 @@ export default function GuidedTour({ run, onFinish, isMobile }) {
     <Joyride
       steps={isMobile ? STEPS_MOBILE : STEPS_DESKTOP}
       run={run}
+      stepIndex={stepIndex}
       continuous
       showSkipButton
       showProgress
