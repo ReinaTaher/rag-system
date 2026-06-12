@@ -77,6 +77,22 @@ export default function SourcesPanel({ sources }) {
                   chunk #{src.chunk_id}
                 </span>
               </div>
+              {src.relevance !== undefined && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
+                  <div style={{ flex: 1, height: '4px', borderRadius: '99px', backgroundColor: theme.inputBorder, overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${src.relevance}%`,
+                      height: '100%',
+                      borderRadius: '99px',
+                      backgroundColor: src.relevance >= 70 ? '#22c55e' : src.relevance >= 40 ? '#f59e0b' : '#ef4444',
+                      transition: 'width 0.4s ease',
+                    }} />
+                  </div>
+                  <span style={{ fontSize: '10px', color: theme.textMuted, minWidth: '30px', textAlign: 'right' }}>
+                    {src.relevance}%
+                  </span>
+                </div>
+              )}
               <p style={{
                 margin: 0,
                 fontSize: '11px',
