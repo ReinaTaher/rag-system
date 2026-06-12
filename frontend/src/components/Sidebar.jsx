@@ -1,9 +1,23 @@
 import { useState } from 'react'
 import { useTheme } from '../context/ThemeContext'
 
-export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, onDelete, isOpen, isMobile, onClose }) {
+export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, onDelete, onRename, isOpen, isMobile, onClose }) {
   const { theme } = useTheme()
   const [search, setSearch] = useState('')
+  const [editingId, setEditingId] = useState(null)
+  const [editingTitle, setEditingTitle] = useState('')
+
+  function startEdit(e, thread) {
+    e.stopPropagation()
+    setEditingId(thread.id)
+    setEditingTitle(thread.title || '')
+  }
+
+  function commitEdit(thread) {
+    const trimmed = editingTitle.trim()
+    if (trimmed && trimmed !== thread.title) onRename(thread.id, trimmed)
+    setEditingId(null)
+  }
   const filtered = search.trim()
     ? threads.filter(t => t.title?.toLowerCase().includes(search.toLowerCase()))
     : threads
@@ -126,35 +140,61 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, 
               className="thread-row"
               style={{ position: 'relative', marginBottom: '3px' }}
             >
-              <button
-                onClick={() => onSelect(thread.id)}
-                style={{
-                  width: '100%',
-                  padding: '9px 32px 9px 10px',
-                  backgroundColor: isActive ? theme.activeThread : 'transparent',
-                  border: `1px solid ${isActive ? theme.activeThreadBorder : 'transparent'}`,
-                  borderRadius: '7px',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'background 0.1s',
-                }}
-                onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = theme.threadHover }}
-                onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent' }}
-              >
-                <div style={{
-                  color: isActive ? theme.text : theme.textMuted,
-                  fontSize: '13px',
-                  fontWeight: isActive ? '500' : '400',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}>
-                  {thread.title || 'New Chat'}
-                </div>
-                <div style={{ color: theme.textFaint, fontSize: '11px', marginTop: '2px' }}>
-                  {timeAgo(thread.updated_at || thread.created_at)}
-                </div>
-              </button>
+              {editingId === thread.id ? (
+                <input
+                  autoFocus
+                  value={editingTitle}
+                  onChange={e => setEditingTitle(e.target.value)}
+                  onBlur={() => commitEdit(thread)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') commitEdit(thread)
+                    if (e.key === 'Escape') setEditingId(null)
+                  }}
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    width: '100%',
+                    padding: '7px 10px',
+                    backgroundColor: theme.inputBg,
+                    border: `1px solid ${theme.btnPrimary}`,
+                    borderRadius: '7px',
+                    color: theme.text,
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              ) : (
+                <button
+                  onClick={() => onSelect(thread.id)}
+                  onDoubleClick={e => startEdit(e, thread)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 32px 9px 10px',
+                    backgroundColor: isActive ? theme.activeThread : 'transparent',
+                    border: `1px solid ${isActive ? theme.activeThreadBorder : 'transparent'}`,
+                    borderRadius: '7px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = theme.threadHover }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent' }}
+                >
+                  <div style={{
+                    color: isActive ? theme.text : theme.textMuted,
+                    fontSize: '13px',
+                    fontWeight: isActive ? '500' : '400',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}>
+                    {thread.title || 'New Chat'}
+                  </div>
+                  <div style={{ color: theme.textFaint, fontSize: '11px', marginTop: '2px' }}>
+                    {timeAgo(thread.updated_at || thread.created_at)}
+                  </div>
+                </button>
+              )}
 
               <button
                 className="delete-btn"
