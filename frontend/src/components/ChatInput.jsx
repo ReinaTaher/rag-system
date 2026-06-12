@@ -81,7 +81,8 @@ const ChatInput = forwardRef(function ChatInput({ onSend, disabled }, ref) {
             fontSize: '14px',
             lineHeight: '1.5',
             resize: 'none',
-            overflow: 'hidden',
+            overflow: 'auto',
+            WebkitOverflowScrolling: 'touch',
             fontFamily: 'inherit',
             maxHeight: '120px',
           }}

@@ -1,4 +1,4 @@
-import { Joyride, STATUS } from 'react-joyride'
+import { Joyride, STATUS, ACTIONS } from 'react-joyride'
 import { useTheme } from '../context/ThemeContext'
 
 const STEPS_DESKTOP = [
@@ -115,8 +115,11 @@ export default function GuidedTour({ run, onFinish, isMobile }) {
     },
   }
 
-  function handleCallback({ status }) {
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+  function handleCallback({ action, status }) {
+    if (
+      [STATUS.FINISHED, STATUS.SKIPPED].includes(status) ||
+      action === ACTIONS.CLOSE
+    ) {
       onFinish()
     }
   }
