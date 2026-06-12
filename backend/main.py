@@ -1,7 +1,7 @@
 import asyncio
 import json
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from bson import ObjectId
 from fastapi import FastAPI, HTTPException
@@ -16,7 +16,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174"],
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
@@ -313,6 +313,69 @@ async def submit_feedback(message_id: str, body: FeedbackRequest):
         "created_at": _now(),
     })
     return {"ok": True}
+
+
+# ── Analytics ────────────────────────────────────────────────────────────────
+
+@app.get("/analytics")
+async def get_analytics():
+    total_threads = await threads_collection.count_documents({})
+    total_messages = await messages_collection.count_documents({"role": "assistant"})
+    total_feedback = await feedback_collection.count_documents({})
+    thumbs_up = await feedback_collection.count_documents({"vote": "up"})
+    thumbs_down = await feedback_collection.count_documents({"vote": "down"})
+    satisfaction_rate = round(thumbs_up / total_feedback * 100, 1) if total_feedback > 0 else 0
+
+    reasons_cursor = feedback_collection.aggregate([
+        {"$match": {"vote": "down", "reason": {"$nin": [None, ""]}}},
+        {"$group": {"_id": "$reason", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+    ])
+    downvote_reasons = {}
+    async for doc in reasons_cursor:
+        downvote_reasons[doc["_id"]] = doc["count"]
+
+    now = datetime.now(timezone.utc)
+    seven_days_ago = now - timedelta(days=7)
+
+    trend_cursor = feedback_collection.aggregate([
+        {"$match": {"created_at": {"$gte": seven_days_ago}}},
+        {"$group": {
+            "_id": {
+                "date": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
+                "vote": "$vote",
+            },
+            "count": {"$sum": 1},
+        }},
+        {"$sort": {"_id.date": 1}},
+    ])
+    trend_map: dict = {}
+    async for doc in trend_cursor:
+        date = doc["_id"]["date"]
+        vote = doc["_id"]["vote"]
+        if date not in trend_map:
+            trend_map[date] = {"up": 0, "down": 0}
+        trend_map[date][vote] = doc["count"]
+
+    feedback_trend = []
+    for i in range(7):
+        date = (seven_days_ago + timedelta(days=i + 1)).strftime("%Y-%m-%d")
+        feedback_trend.append({
+            "date": date,
+            "up": trend_map.get(date, {}).get("up", 0),
+            "down": trend_map.get(date, {}).get("down", 0),
+        })
+
+    return {
+        "total_threads": total_threads,
+        "total_messages": total_messages,
+        "total_feedback": total_feedback,
+        "thumbs_up": thumbs_up,
+        "thumbs_down": thumbs_down,
+        "satisfaction_rate": satisfaction_rate,
+        "downvote_reasons": downvote_reasons,
+        "feedback_trend": feedback_trend,
+    }
 
 
 # ── Original endpoints (kept for reference) ──────────────────────────────────
