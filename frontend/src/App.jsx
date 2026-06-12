@@ -26,6 +26,21 @@ export default function App() {
   const [messageFeedback, setMessageFeedback] = useState({})
   const [showAnalytics, setShowAnalytics] = useState(false)
   const chatInputRef = useRef(null)
+  const [suggestions, setSuggestions] = useState([])
+
+  async function fetchSuggestions(question, answer) {
+    try {
+      const res = await fetch(`${API}/suggestions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, answer }),
+      })
+      const data = await res.json()
+      setSuggestions(data.suggestions || [])
+    } catch {
+      setSuggestions([])
+    }
+  }
 
   function handleAskAboutSource(src) {
     const prompt = `Can you elaborate on: "${src.text.slice(0, 80).trim()}"`
@@ -141,6 +156,7 @@ export default function App() {
       .slice(-6)
       .map(m => ({ role: m.role, content: m.content }))
 
+    setSuggestions([])
     setMessages(prev => [...prev, { role: 'user', content: text, id: null, sources: null, version_count: 1, displayedVersion: 1, versions: null }])
     setLoading(true)
 
@@ -154,6 +170,7 @@ export default function App() {
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let firstToken = true
+      let finalAnswer = ''
 
       while (true) {
         const { done, value } = await reader.read()
@@ -175,6 +192,7 @@ export default function App() {
                 return updated
               })
             } else if (parsed.replace !== undefined) {
+              finalAnswer = parsed.replace
               setMessages(prev => {
                 const updated = [...prev]
                 const last = updated[updated.length - 1]
@@ -209,6 +227,7 @@ export default function App() {
       }
 
       fetchThreads()
+      if (finalAnswer) fetchSuggestions(text, finalAnswer)
     } catch {
       setLoading(false)
       setMessages(prev => [...prev, { role: 'assistant', content: 'Error: could not reach the backend.', id: null, sources: null, version_count: 1, displayedVersion: 1, versions: null }])
@@ -574,6 +593,8 @@ export default function App() {
                   onDismissCompare={dismissComparison}
                   onPickVersion={pickCompareVersion}
                   onAskAboutSource={handleAskAboutSource}
+                  suggestions={suggestions}
+                  onSuggestionClick={(s) => { setSuggestions([]); sendMessage(s) }}
                 />
               </div>
               <ChatInput ref={chatInputRef} onSend={sendMessage} disabled={loading || streaming} />

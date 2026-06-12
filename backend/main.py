@@ -9,7 +9,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+import re
+
+import requests as http_requests
+
 from agent import knowledge_agent, stream_knowledge_agent
+from config import OLLAMA_BASE_URL, OLLAMA_MODEL
 from database import threads_collection, messages_collection, message_versions_collection, feedback_collection
 
 app = FastAPI()
@@ -46,6 +51,11 @@ class FeedbackRequest(BaseModel):
     vote: str        # "up" or "down"
     reason: str = "" # required when vote == "down"
     version_num: int = 1
+
+
+class SuggestionsRequest(BaseModel):
+    question: str
+    answer: str
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -327,6 +337,35 @@ async def submit_feedback(message_id: str, body: FeedbackRequest):
         "created_at": _now(),
     })
     return {"ok": True}
+
+
+# ── Suggestions ──────────────────────────────────────────────────────────────
+
+@app.post("/suggestions")
+async def get_suggestions(body: SuggestionsRequest):
+    prompt = (
+        f"A user asked: \"{body.question}\"\n\n"
+        f"The answer was: \"{body.answer[:400]}\"\n\n"
+        "Generate exactly 3 short follow-up questions the user might ask next. "
+        "Each question must be under 12 words. "
+        "Return ONLY a JSON array of 3 strings, no explanation.\n"
+        "Example: [\"What tools implement this?\", \"How does this apply to cloud?\", \"What is the risk of skipping this?\"]"
+    )
+    try:
+        res = http_requests.post(
+            f"{OLLAMA_BASE_URL}/api/generate",
+            json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False, "options": {"temperature": 0.7}},
+            timeout=30,
+        )
+        res.raise_for_status()
+        raw = res.json().get("response", "[]")
+        match = re.search(r'\[.*?\]', raw, re.DOTALL)
+        if match:
+            suggestions = json.loads(match.group())
+            return {"suggestions": [s for s in suggestions if isinstance(s, str)][:3]}
+    except Exception:
+        pass
+    return {"suggestions": []}
 
 
 # ── Analytics ────────────────────────────────────────────────────────────────
