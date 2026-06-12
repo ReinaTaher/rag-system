@@ -1,7 +1,12 @@
+import { useState } from 'react'
 import { useTheme } from '../context/ThemeContext'
 
 export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, onDelete, isOpen, isMobile, onClose }) {
   const { theme } = useTheme()
+  const [search, setSearch] = useState('')
+  const filtered = search.trim()
+    ? threads.filter(t => t.title?.toLowerCase().includes(search.toLowerCase()))
+    : threads
 
   function timeAgo(dateStr) {
     const diff = Date.now() - new Date(dateStr).getTime()
@@ -83,17 +88,37 @@ export default function Sidebar({ threads, activeThreadId, onSelect, onNewChat, 
         )}
       </div>
 
+      <div style={{ padding: '8px 8px 0' }}>
+        <input
+          type="text"
+          placeholder="Search conversations..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '7px 10px',
+            backgroundColor: theme.inputBg,
+            border: `1px solid ${theme.inputBorder}`,
+            borderRadius: '7px',
+            color: theme.text,
+            fontSize: '12px',
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+        />
+      </div>
+
       <div
         id="tour-thread-list"
         className="dark-scrollbar"
         style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}
       >
-        {threads.length === 0 && (
+        {filtered.length === 0 && (
           <p style={{ color: theme.textFaint, fontSize: '12px', textAlign: 'center', marginTop: '24px' }}>
-            No conversations yet
+            {search.trim() ? 'No matches found' : 'No conversations yet'}
           </p>
         )}
-        {threads.map(thread => {
+        {filtered.map(thread => {
           const isActive = thread.id === activeThreadId
           return (
             <div
