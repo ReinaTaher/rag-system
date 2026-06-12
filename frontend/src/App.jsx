@@ -73,6 +73,19 @@ export default function App() {
     }
   }
 
+  async function renameThread(threadId, title) {
+    try {
+      await fetch(`${API}/threads/${threadId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      })
+      setThreads(prev => prev.map(t => t.id === threadId ? { ...t, title } : t))
+    } catch {
+      console.error('Failed to rename thread')
+    }
+  }
+
   async function deleteThread(threadId) {
     try {
       await fetch(`${API}/threads/${threadId}`, { method: 'DELETE' })
@@ -520,6 +533,7 @@ export default function App() {
           onSelect={(id) => { selectThread(id); if (isMobile) setSidebarOpen(false) }}
           onNewChat={() => { createThread(); if (isMobile) setSidebarOpen(false) }}
           onDelete={deleteThread}
+          onRename={renameThread}
           isOpen={sidebarOpen}
           isMobile={isMobile}
           onClose={() => setSidebarOpen(false)}

@@ -182,6 +182,20 @@ async def thread_chat_stream(thread_id: str, request: ChatRequest):
     )
 
 
+@app.patch("/threads/{thread_id}")
+async def rename_thread(thread_id: str, body: CreateThreadRequest):
+    if not ObjectId.is_valid(thread_id):
+        raise HTTPException(status_code=400, detail="Invalid thread ID")
+    title = body.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Title cannot be empty")
+    await threads_collection.update_one(
+        {"_id": ObjectId(thread_id)},
+        {"$set": {"title": title, "updated_at": _now()}},
+    )
+    return {"ok": True}
+
+
 @app.delete("/threads/{thread_id}")
 async def delete_thread(thread_id: str):
     if not ObjectId.is_valid(thread_id):
