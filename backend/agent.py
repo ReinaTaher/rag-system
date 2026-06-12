@@ -188,22 +188,15 @@ def knowledge_agent(query: str, history: list[dict] | None = None) -> str:
 
 
 def _build_sources_payload(top_chunks: list[tuple[dict, float]]) -> list[dict]:
-    """Build the sources list to send to the frontend, including a normalized relevance score."""
-    if not top_chunks:
-        return []
-    scores = [score for _, score in top_chunks]
-    min_s, max_s = min(scores), max(scores)
-    score_range = max_s - min_s if max_s != min_s else 1.0
-
+    """Build the sources list to send to the frontend."""
     return [
         {
             "id": i,
             "text": chunk["text"][:300] + ("…" if len(chunk["text"]) > 300 else ""),
             "source": chunk["source"],
             "chunk_id": chunk["chunk_id"],
-            "relevance": round((score - min_s) / score_range * 100),
         }
-        for i, (chunk, score) in enumerate(top_chunks, start=1)
+        for i, (chunk, _) in enumerate(top_chunks, start=1)
     ]
 
 
