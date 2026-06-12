@@ -6,6 +6,7 @@ import ChatInput from './components/ChatInput'
 import Sidebar from './components/Sidebar'
 import GuidedTour from './components/GuidedTour'
 import EmptyState from './components/EmptyState'
+import AnalyticsDashboard from './components/AnalyticsDashboard'
 import { useTheme } from './context/ThemeContext'
 import { useWindowSize } from './hooks/useWindowSize'
 
@@ -23,6 +24,7 @@ export default function App() {
   const [streaming, setStreaming] = useState(false)
   const [tourRunning, setTourRunning] = useState(false)
   const [messageFeedback, setMessageFeedback] = useState({})
+  const [showAnalytics, setShowAnalytics] = useState(false)
   const [compareMode, setCompareMode] = useState(null)
   // compareMode shape: { msgIndex } — only set when version_count === 2
 
@@ -85,6 +87,7 @@ export default function App() {
   }
 
   async function selectThread(threadId) {
+    setShowAnalytics(false)
     setActiveThreadId(threadId)
     setMessages([])
     setMessageFeedback({})
@@ -528,9 +531,13 @@ export default function App() {
             onToggleSidebar={() => setSidebarOpen(v => !v)}
             hasActiveThread={!!activeThreadId}
             onExport={exportPDF}
+            showAnalytics={showAnalytics}
+            onToggleAnalytics={() => setShowAnalytics(v => !v)}
           />
 
-          {activeThreadId ? (
+          {showAnalytics ? (
+            <AnalyticsDashboard />
+          ) : activeThreadId ? (
             <>
               <div style={{ flex: 1, minHeight: 0 }}>
                 <ChatWindow

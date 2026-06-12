@@ -1,7 +1,7 @@
-import { Sun, Moon, Menu, Download } from 'lucide-react'
+import { Sun, Moon, Menu, Download, BarChart2, MessageSquare } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
-export default function Header({ isMobile, onToggleSidebar, hasActiveThread, onExport }) {
+export default function Header({ isMobile, onToggleSidebar, hasActiveThread, onExport, showAnalytics, onToggleAnalytics }) {
   const { theme, isDark, toggle } = useTheme()
 
   return (
@@ -61,7 +61,7 @@ export default function Header({ isMobile, onToggleSidebar, hasActiveThread, onE
           </span>
         )}
 
-        {hasActiveThread && (
+        {hasActiveThread && !showAnalytics && (
           <button
             onClick={onExport}
             title="Export conversation as PDF"
@@ -80,6 +80,24 @@ export default function Header({ isMobile, onToggleSidebar, hasActiveThread, onE
             <Download size={14} />
           </button>
         )}
+
+        <button
+          onClick={onToggleAnalytics}
+          title={showAnalytics ? 'Back to chat' : 'View analytics'}
+          style={{
+            background: showAnalytics ? theme.activeThread : theme.badge,
+            border: `1px solid ${showAnalytics ? theme.activeThreadBorder : theme.badgeBorder}`,
+            borderRadius: '99px',
+            padding: '4px 10px',
+            cursor: 'pointer',
+            lineHeight: 1,
+            color: showAnalytics ? '#1d4ed8' : theme.textMuted,
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          {showAnalytics ? <MessageSquare size={14} /> : <BarChart2 size={14} />}
+        </button>
 
         <button
           onClick={toggle}
